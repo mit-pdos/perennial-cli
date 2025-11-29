@@ -38,13 +38,19 @@ Parse .rocqdeps.d and report dependencies.
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		rocqdepFileName, _ := cmd.Flags().GetString("file")
+		printVos, _ := cmd.Flags().GetBool("vo")
 		deps, err := depgraph.ParseRocqdep(rocqdepFileName)
 		if err != nil {
 			return err
 		}
 		sources := depgraph.RocqDeps(deps, args)
 		for _, source := range sources {
-			fmt.Println(source)
+			if printVos {
+				fmt.Println(setExtension(source, ".vo"))
+			} else {
+				fmt.Println(source)
+			}
+
 		}
 		return nil
 	},
@@ -54,4 +60,5 @@ func init() {
 	rootCmd.AddCommand(depsCmd)
 
 	depsCmd.PersistentFlags().StringP("file", "f", "", "Path to .rocqdeps.d file")
+	depsCmd.PersistentFlags().Bool("vo", false, "Print .vo dependencies rather than .v sources")
 }
