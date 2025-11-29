@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"iter"
 	"regexp"
 	"slices"
 	"strings"
@@ -28,11 +29,29 @@ type PinDepend struct {
 
 type region struct {
 	startLine int
-	numLines  int
+	endLine   int // exclusive
+}
+
+func (r region) Contains(line int) bool {
+	return r.startLine <= line && line < r.endLine
 }
 
 func (r region) empty() bool {
-	return r.numLines <= 0
+	return r.endLine <= r.startLine
+}
+
+func rangeIter(start, end int) iter.Seq[int] {
+	return func(yield func(int) bool) {
+		for i := start; i < end; i++ {
+			if !yield(i) {
+				return
+			}
+		}
+	}
+}
+
+func (r region) innerLineNums() iter.Seq[int] {
+	return rangeIter(r.startLine+1, r.endLine-1)
 }
 
 type OpamFile struct {
@@ -76,14 +95,14 @@ func (f *OpamFile) findRegions() error {
 
 		// Check for closing ] of depends
 		if inDepends && closeBracketRe.MatchString(line) {
-			f.depends.numLines = i - f.depends.startLine + 1
+			f.depends.endLine = i + 1
 			inDepends = false
 			continue
 		}
 
 		// Check for closing ] of pin-depends
 		if inPinDepends && closeBracketRe.MatchString(line) {
-			f.pinDepends.numLines = i - f.pinDepends.startLine + 1
+			f.pinDepends.endLine = i + 1
 			inPinDepends = false
 
 			// Check for unclosed indirect region
@@ -105,7 +124,7 @@ func (f *OpamFile) findRegions() error {
 					return fmt.Errorf("## end marker without ## begin indirect at line %d", i)
 				}
 				f.indirectPinDepends.startLine = indirectStart
-				f.indirectPinDepends.numLines = i - indirectStart + 1
+				f.indirectPinDepends.endLine = i + 1
 				indirectStart = -1
 			}
 		}
@@ -186,11 +205,7 @@ func (dep PinDepend) String() string {
 	if commit != "" {
 		fullURL = dep.URL + "#" + commit
 	}
-	// Add .dev suffix to package name if not already present
-	fullPackageName := dep.Package
-	if !strings.HasSuffix(dep.Package, ".dev") {
-		fullPackageName = dep.Package + ".dev"
-	}
+	fullPackageName := dep.Package + ".dev"
 	// Use spacing similar to the example: package name padded with spaces between quotes
 	// Total width is package name in quotes (package + 2 for quotes) padded to 27 chars
 	quotedPkg := "\"" + fullPackageName + "\""
@@ -209,19 +224,11 @@ func (f *OpamFile) ListPinDepends() []PinDepend {
 
 	var deps []PinDepend
 	start := f.pinDepends.startLine + 1
-	end := f.pinDepends.startLine + f.pinDepends.numLines - 1
-
-	// Determine the range of indirect dependencies to skip
-	indirectStart := -1
-	indirectEnd := -1
-	if !f.indirectPinDepends.empty() {
-		indirectStart = f.indirectPinDepends.startLine
-		indirectEnd = f.indirectPinDepends.startLine + f.indirectPinDepends.numLines
-	}
+	end := f.pinDepends.endLine - 1
 
 	for i := start; i < end; i++ {
 		// Skip lines in the indirect section
-		if indirectStart >= 0 && i >= indirectStart && i < indirectEnd {
+		if f.indirectPinDepends.Contains(i) {
 			continue
 		}
 
@@ -245,12 +252,9 @@ func (f *OpamFile) AddPinDepend(dep PinDepend) {
 		return
 	}
 
-	start := f.pinDepends.startLine + 1
-	end := f.pinDepends.startLine + f.pinDepends.numLines - 1
-
 	// Search for existing entry and replace it
 	foundIndex := -1
-	for i := start; i < end; i++ {
+	for i := range f.pinDepends.innerLineNums() {
 		existingDep := parsePinDependLine(f.Lines[i])
 		if existingDep != nil && existingDep.Package == dep.Package {
 			foundIndex = i
@@ -259,9 +263,7 @@ func (f *OpamFile) AddPinDepend(dep PinDepend) {
 	}
 
 	// If found in indirect section, remove it from there and add to main section
-	if foundIndex >= 0 && !f.indirectPinDepends.empty() &&
-		foundIndex >= f.indirectPinDepends.startLine &&
-		foundIndex < f.indirectPinDepends.startLine+f.indirectPinDepends.numLines {
+	if f.indirectPinDepends.Contains(foundIndex) {
 		// Remove from indirect section
 		f.Lines = slices.Delete(f.Lines, foundIndex, foundIndex+1)
 
@@ -271,14 +273,13 @@ func (f *OpamFile) AddPinDepend(dep PinDepend) {
 		}
 
 		// Add to main section (after pin-depends: [ line)
-		start = f.pinDepends.startLine + 1
-		f.Lines = slices.Insert(f.Lines, start, dep.String())
+		f.Lines = slices.Insert(f.Lines, f.pinDepends.startLine+1, dep.String())
 	} else if foundIndex >= 0 {
 		// Found in main section, just replace it
 		f.Lines[foundIndex] = dep.String()
 	} else {
 		// Not found anywhere, add it after the pin-depends: [ line
-		f.Lines = slices.Insert(f.Lines, start, dep.String())
+		f.Lines = slices.Insert(f.Lines, f.pinDepends.startLine+1, dep.String())
 	}
 
 	err := f.findRegions()
@@ -293,8 +294,8 @@ func (f *OpamFile) GetIndirect() []PinDepend {
 	}
 
 	var deps []PinDepend
-	start := f.indirectPinDepends.startLine + 1                               // Skip "## begin indirect" line
-	end := f.indirectPinDepends.startLine + f.indirectPinDepends.numLines - 1 // Skip "## end" line
+	start := f.indirectPinDepends.startLine + 1 // Skip "## begin indirect" line
+	end := f.indirectPinDepends.endLine - 1     // Skip "## end" line
 
 	for i := start; i < end; i++ {
 		line := f.Lines[i]
@@ -318,13 +319,11 @@ func (f *OpamFile) SetIndirect(indirects []PinDepend) {
 	for _, indirect := range indirects {
 		found := false
 		start := f.pinDepends.startLine + 1
-		indirectStart := f.indirectPinDepends.startLine
-		indirectEnd := f.indirectPinDepends.startLine + f.indirectPinDepends.numLines
 
 		// Check if package exists in main pin-depends (outside indirect section)
-		for i := start; i < f.pinDepends.startLine+f.pinDepends.numLines-1; i++ {
+		for i := start; i < f.pinDepends.endLine-1; i++ {
 			// Skip lines in indirect section
-			if !f.indirectPinDepends.empty() && i >= indirectStart && i < indirectEnd {
+			if f.indirectPinDepends.Contains(i) {
 				continue
 			}
 
@@ -354,7 +353,7 @@ func (f *OpamFile) SetIndirect(indirects []PinDepend) {
 
 		// Replace the indirect region
 		start := f.indirectPinDepends.startLine
-		end := f.indirectPinDepends.startLine + f.indirectPinDepends.numLines
+		end := f.indirectPinDepends.endLine
 
 		f.Lines = slices.Replace(f.Lines, start, end, indirectLines...)
 	} else {
@@ -369,7 +368,7 @@ func (f *OpamFile) SetIndirect(indirects []PinDepend) {
 		indirectLines = append(indirectLines, "  ## end")
 
 		// Insert before the closing ] of pin-depends
-		insertPos := f.pinDepends.startLine + f.pinDepends.numLines - 1
+		insertPos := f.pinDepends.endLine - 1
 
 		f.Lines = slices.Insert(f.Lines, insertPos, indirectLines...)
 	}

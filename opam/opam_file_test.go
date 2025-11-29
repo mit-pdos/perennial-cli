@@ -45,17 +45,17 @@ func TestParse(t *testing.T) {
 	// Check depends region
 	assert.False(t, f.depends.empty(), "depends region not found")
 	assert.Equal(t, 10, f.depends.startLine)
-	assert.Equal(t, 3, f.depends.numLines)
+	assert.Equal(t, 13, f.depends.endLine)
 
 	// Check pin-depends region
 	assert.False(t, f.pinDepends.empty(), "pin-depends region not found")
 	assert.Equal(t, 14, f.pinDepends.startLine)
-	assert.Equal(t, 10, f.pinDepends.numLines)
+	assert.Equal(t, 24, f.pinDepends.endLine)
 
 	// Check indirect region
 	assert.False(t, f.indirectPinDepends.empty(), "indirect pin-depends region not found")
 	assert.Equal(t, 17, f.indirectPinDepends.startLine)
-	assert.Equal(t, 6, f.indirectPinDepends.numLines)
+	assert.Equal(t, 23, f.indirectPinDepends.endLine)
 }
 
 func TestListPinDepends(t *testing.T) {

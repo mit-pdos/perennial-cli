@@ -17,8 +17,8 @@ var packagesWithoutPinDepends = map[string]bool{
 }
 
 // GetLatestCommit returns the latest commit hash from a git URL.
-// The URL should be in the format "git+https://github.com/user/repo".
-// Returns the first 15 characters of the commit hash.
+//
+// Trims the commit hash to the first 15 characters.
 func GetLatestCommit(gitURL string) (string, error) {
 	// Strip git+ prefix if present
 	url := strings.TrimPrefix(gitURL, "git+")
@@ -108,6 +108,5 @@ func GetIndirectDependencies(packageName, gitURL string) ([]PinDepend, error) {
 		return nil, fmt.Errorf("failed to parse opam file: %w", err)
 	}
 
-	// ListPinDepends already excludes indirect dependencies
 	return opamFile.ListPinDepends(), nil
 }
