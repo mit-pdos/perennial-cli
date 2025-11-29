@@ -4,11 +4,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is `perennial-cli`, a Go utility library for managing opam files, specifically designed to handle pin-depends and their transitive indirect dependencies. The tool is used in the context of the Perennial verification framework.
+This is `perennial-cli`, a Go CLI tool for managing opam files, specifically designed to handle pin-depends and their transitive indirect dependencies. The tool is used in the context of the Perennial verification framework.
 
-## Build and Test Commands
+## Build and Usage Commands
 
 ```bash
+# Build the CLI
+go build
+
+# Update all pin-depends in an opam file to latest commits
+./perennial-cli opam update -f path/to/file.opam
+
+# Update all pin-depends (auto-detects unique .opam file in current directory)
+./perennial-cli opam update
+
+# Update only a specific package
+./perennial-cli opam update -p perennial
+
 # Run tests with verbose output
 go test ./... -v
 
@@ -23,10 +35,14 @@ go test -run TestParse ./opam/opam_file_test.go ./opam/opam_file.go
 
 ### Package Structure
 
-The codebase consists of a single `opam` package with two main components:
+The codebase consists of two main packages:
 
-1. **opam_file.go** - Opam file parsing and manipulation
-2. **update.go** - Git repository interaction and dependency resolution
+**`cmd` package** - Cobra-based CLI commands:
+- **update.go** - The `opam update` command that updates pin-depends to latest commits
+
+**`opam` package** - Core opam file manipulation library:
+- **opam_file.go** - Opam file parsing and manipulation
+- **update.go** - Git repository interaction and dependency resolution
 
 ### Core Data Structures
 
