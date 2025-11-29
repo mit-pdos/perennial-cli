@@ -244,15 +244,8 @@ func (dep PinDepend) String() string {
 
 // GetPinDepends returns all direct pin-depends (excluding indirect dependencies).
 func (f *OpamFile) GetPinDepends() []PinDepend {
-	if f.pinDepends.empty() {
-		return nil
-	}
-
 	var deps []PinDepend
-	start := f.pinDepends.startLine + 1
-	end := f.pinDepends.endLine - 1
-
-	for i := start; i < end; i++ {
+	for i := range f.pinDepends.innerLineNums() {
 		// Skip lines in the indirect section
 		if f.indirectPinDepends.Contains(i) {
 			continue
