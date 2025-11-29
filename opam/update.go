@@ -1,6 +1,7 @@
 package opam
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 )
 
 // packagesWithoutPinDepends is a list of packages known to not have pin-depends
+// (so they can be skipped in checking for indirect dependencies)
 var packagesWithoutPinDepends = map[string]bool{
 	"coq-record-update": true,
 	"rocq-stdpp":        true,
@@ -85,12 +87,10 @@ func fetchOpamFile(gitURL, packageName string) ([]byte, error) {
 	return data, nil
 }
 
-// GetIndirectDependencies fetches the indirect dependencies of a package.
+// GetDependencies fetches the (transitive) dependencies of a package.
 // It fetches the package's opam file from the given git URL and returns
-// its pin-depends (excluding any indirect dependencies in that file).
-// For packages in the known list (coq-record-update, rocq-stdpp, rocq-iris, iris-named-props),
-// it returns an empty list as they are known to not have pin-depends.
-func GetIndirectDependencies(packageName, gitURL string) ([]PinDepend, error) {
+// its pin-depends.
+func GetDependencies(packageName, gitURL string) ([]PinDepend, error) {
 	// Check if this package is known to not have pin-depends
 	if packagesWithoutPinDepends[packageName] {
 		return nil, nil
@@ -103,10 +103,11 @@ func GetIndirectDependencies(packageName, gitURL string) ([]PinDepend, error) {
 	}
 
 	// Parse the opam file
-	opamFile, err := Parse(strings.NewReader(string(data)))
+	opamFile, err := Parse(bytes.NewReader(data))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse opam file: %w", err)
 	}
 
-	return opamFile.ListPinDepends(), nil
+	deps := append(opamFile.ListPinDepends(), opamFile.GetIndirect()...)
+	return deps, nil
 }

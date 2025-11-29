@@ -22,16 +22,16 @@ func TestGetLatestCommit(t *testing.T) {
 	}
 }
 
-func TestGetIndirectDependencies_KnownPackage(t *testing.T) {
-	// Test with a package known to not have pin-depends
-	deps, err := GetIndirectDependencies("coq-record-update", "git+https://github.com/tchajed/coq-record-update")
+func TestGetDependencies_KnownPackage(t *testing.T) {
+	// Test with a package known to not have pin-depends (shouldn't trigger an HTTP request)
+	deps, err := GetDependencies("coq-record-update", "git+https://github.com/tchajed/coq-record-update")
 	require.NoError(t, err)
 	assert.Nil(t, deps)
 }
 
-func TestGetIndirectDependencies(t *testing.T) {
+func TestGetDependencies(t *testing.T) {
 	// Test with perennial-example-proof repository (this is a live test)
-	deps, err := GetIndirectDependencies("example-proof", "git+https://github.com/tchajed/perennial-example-proof")
+	deps, err := GetDependencies("example-proof", "git+https://github.com/tchajed/perennial-example-proof")
 	require.NoError(t, err)
 
 	// The function should return only direct pin-depends (excluding indirect dependencies)

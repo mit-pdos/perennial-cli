@@ -141,6 +141,16 @@ func (f *OpamFile) findRegions() error {
 	return nil
 }
 
+// update parsed data after changing f.Lines
+//
+// Internal function: errors cause a panic() since this library should not
+// introduce parse errors
+func (f *OpamFile) update() {
+	if err := f.findRegions(); err != nil {
+		panic(fmt.Sprintf("internal error: %v", err))
+	}
+}
+
 func Parse(r io.Reader) (*OpamFile, error) {
 	scanner := bufio.NewScanner(r)
 	var lines []string
@@ -265,10 +275,7 @@ func (f *OpamFile) AddPinDepend(dep PinDepend) {
 		// Remove from indirect section
 		f.Lines = slices.Delete(f.Lines, foundIndex, foundIndex+1)
 
-		err := f.findRegions()
-		if err != nil {
-			panic(err)
-		}
+		f.update()
 
 		// Add to main section (after pin-depends: [ line)
 		f.Lines = slices.Insert(f.Lines, f.pinDepends.startLine+1, dep.String())
@@ -280,10 +287,7 @@ func (f *OpamFile) AddPinDepend(dep PinDepend) {
 		f.Lines = slices.Insert(f.Lines, f.pinDepends.startLine+1, dep.String())
 	}
 
-	err := f.findRegions()
-	if err != nil {
-		panic(err)
-	}
+	f.update()
 }
 
 func (f *OpamFile) GetIndirect() []PinDepend {
@@ -370,8 +374,5 @@ func (f *OpamFile) SetIndirect(indirects []PinDepend) {
 
 		f.Lines = slices.Insert(f.Lines, insertPos, indirectLines...)
 	}
-	err := f.findRegions()
-	if err != nil {
-		panic(err)
-	}
+	f.update()
 }
