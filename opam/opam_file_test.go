@@ -195,6 +195,11 @@ func TestParsePinDependLine(t *testing.T) {
 			},
 		},
 		{
+			name: "commented out",
+			line: `#  ["pkg.dev" "git+https://example.com/repo#abc123"]`,
+			want: nil,
+		},
+		{
 			name: "comment line",
 			line: "  ## begin indirect",
 			want: nil,
