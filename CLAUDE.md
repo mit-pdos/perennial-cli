@@ -6,21 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is `perennial-cli`, a Go CLI tool for managing opam files, specifically designed to handle pin-depends and their transitive indirect dependencies. The tool is used in the context of the Perennial verification framework.
 
-## Build and Usage Commands
+## Test Commands
 
 ```bash
-# Build the CLI
-go build
-
-# Update all pin-depends in an opam file to latest commits
-./perennial-cli opam update -f path/to/file.opam
-
-# Update all pin-depends (auto-detects unique .opam file in current directory)
-./perennial-cli opam update
-
-# Update only a specific package
-./perennial-cli opam update -p perennial
-
 # Run tests with verbose output
 go test ./... -v
 
