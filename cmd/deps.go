@@ -18,6 +18,53 @@ func setExtension(path string, ext string) string {
 	return strings.TrimSuffix(path, oldExt) + ext
 }
 
+func getDirVFiles(dir string) ([]string, error) {
+	var sources []string
+	err := filepath.WalkDir(dir, func(p string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() && strings.HasSuffix(p, ".v") {
+			sources = append(sources, p)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error walking directory %s: %v", dir, err)
+	}
+
+	return sources, nil
+}
+
+func gatherVFiles(paths []string) ([]string, error) {
+	var sources []string
+
+	for _, path := range paths {
+		info, err := os.Stat(path)
+		if err != nil {
+			return nil, fmt.Errorf("error accessing %s: %v", path, err)
+		}
+
+		if info.IsDir() {
+			// Walk directory and find all .v files
+			dirSources, err := getDirVFiles(path)
+			if err != nil {
+				return nil, fmt.Errorf("error walking directory %s: %v", path, err)
+			}
+			sources = append(sources, dirSources...)
+
+		} else if strings.HasSuffix(path, ".v") {
+			sources = append(sources, path)
+		} else if strings.HasSuffix(path, ".vo") {
+			sources = append(sources, setExtension(path, ".v"))
+		} else {
+			fmt.Fprintf(os.Stderr, "Skipping non-.v file: %s\n", path)
+		}
+	}
+
+	return sources, nil
+}
+
 // depsCmd represents the deps command
 var depsCmd = &cobra.Command{
 	Use:   "deps",
@@ -39,12 +86,20 @@ Parse .rocqdeps.d and report dependencies.
 	RunE: func(cmd *cobra.Command, args []string) error {
 		rocqdepFileName, _ := cmd.Flags().GetString("file")
 		printVos, _ := cmd.Flags().GetBool("vo")
+
+		// Gather .v files from arguments (handles directories)
+		sources, err := gatherVFiles(args)
+		if err != nil {
+			return err
+		}
+
 		deps, err := depgraph.ParseRocqdep(rocqdepFileName)
 		if err != nil {
 			return err
 		}
-		sources := depgraph.RocqDeps(deps, args)
-		for _, source := range sources {
+
+		depSources := depgraph.RocqDeps(deps, sources)
+		for _, source := range depSources {
 			if printVos {
 				fmt.Println(setExtension(source, ".vo"))
 			} else {
