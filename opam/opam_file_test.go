@@ -20,13 +20,13 @@ synopsis: "A test of perennial as a dependency"
 
 depends: [
   "perennial"
+  "coq-record-update" { (>= "0.3.6") }
 ]
 
 pin-depends: [
   ["perennial.dev"           "git+https://github.com/mit-pdos/perennial#577140b0594fbde"]
 
   ## begin indirect
-  ["coq-record-update.dev"   "git+https://github.com/tchajed/coq-record-update#7b2645210331c3e"]
   ["rocq-stdpp.dev"          "git+https://gitlab.mpi-sws.org/iris/stdpp#187909f0c15b7c8"]
   ["rocq-iris.dev"           "git+https://gitlab.mpi-sws.org/iris/iris#fde0f8699242184"]
   ["iris-named-props.dev"    "git+https://github.com/tchajed/iris-named-props#c388714a93b1c04"]
@@ -45,16 +45,16 @@ func TestParse(t *testing.T) {
 	// Check depends region
 	assert.False(t, f.depends.empty(), "depends region not found")
 	assert.Equal(t, 10, f.depends.startLine)
-	assert.Equal(t, 13, f.depends.endLine)
+	assert.Equal(t, 14, f.depends.endLine)
 
 	// Check pin-depends region
 	assert.False(t, f.pinDepends.empty(), "pin-depends region not found")
-	assert.Equal(t, 14, f.pinDepends.startLine)
+	assert.Equal(t, 15, f.pinDepends.startLine)
 	assert.Equal(t, 24, f.pinDepends.endLine)
 
 	// Check indirect region
 	assert.False(t, f.indirectPinDepends.empty(), "indirect pin-depends region not found")
-	assert.Equal(t, 17, f.indirectPinDepends.startLine)
+	assert.Equal(t, 18, f.indirectPinDepends.startLine)
 	assert.Equal(t, 23, f.indirectPinDepends.endLine)
 }
 
@@ -79,11 +79,12 @@ func TestGetIndirect(t *testing.T) {
 	require.NoError(t, err)
 
 	indirect := f.GetIndirect()
-	require.Len(t, indirect, 4)
+	require.Len(t, indirect, 3)
 
 	// Check that we only got indirect dependencies
-	assert.Equal(t, "coq-record-update", indirect[0].Package)
-	assert.Equal(t, "iris-named-props", indirect[3].Package)
+	assert.Equal(t, "rocq-stdpp", indirect[0].Package)
+	assert.Equal(t, "rocq-iris", indirect[1].Package)
+	assert.Equal(t, "iris-named-props", indirect[2].Package)
 }
 
 func TestAddPinDepend_Update(t *testing.T) {
