@@ -29,7 +29,7 @@ func TestFetchDependencies_KnownPackage(t *testing.T) {
 		URL:     "git+https://github.com/tchajed/coq-record-update",
 		Commit:  "000000000000000", // Dummy commit - won't be used since package is in skip list
 	}
-	deps, err := FetchDependencies(dep)
+	deps, err := dep.FetchDependencies()
 	require.NoError(t, err)
 	assert.Nil(t, deps)
 }
@@ -45,7 +45,7 @@ func TestFetchDependencies(t *testing.T) {
 		URL:     "git+https://github.com/tchajed/perennial-example-proof",
 		Commit:  commit,
 	}
-	deps, err := FetchDependencies(dep)
+	deps, err := dep.FetchDependencies()
 	require.NoError(t, err)
 
 	// The function should return all pin-depends (both direct and indirect)

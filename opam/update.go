@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os/exec"
+	"slices"
 	"strings"
 )
 
@@ -90,7 +91,7 @@ func fetchOpamFile(gitURL, packageName, commit string) ([]byte, error) {
 // FetchDependencies fetches the (transitive) dependencies of a package.
 // It fetches the package's opam file at the specified git commit and returns
 // its pin-depends.
-func FetchDependencies(dep PinDepend) ([]PinDepend, error) {
+func (dep *PinDepend) FetchDependencies() ([]PinDepend, error) {
 	// Check if this package is known to not have pin-depends
 	if packagesWithoutPinDepends[dep.Package] {
 		return nil, nil
@@ -110,4 +111,31 @@ func FetchDependencies(dep PinDepend) ([]PinDepend, error) {
 
 	deps := append(opamFile.ListPinDepends(), opamFile.GetIndirect()...)
 	return deps, nil
+}
+
+func (f *OpamFile) UpdateIndirectDependencies() error {
+	seen := make(map[string]bool)
+	indirects := []PinDepend{}
+	for _, dep := range f.ListPinDepends() {
+		newIndirects, err := dep.FetchDependencies()
+		if err != nil {
+			return err
+		}
+		for _, newDep := range newIndirects {
+			if !seen[newDep.Package] {
+				indirects = append(indirects, newDep)
+				seen[newDep.Package] = true
+			}
+		}
+	}
+	slices.SortFunc(indirects, func(a, b PinDepend) int {
+		if a.Package < b.Package {
+			return -1
+		} else if a.Package > b.Package {
+			return 1
+		}
+		return 0
+	})
+	f.SetIndirect(indirects)
+	return nil
 }
