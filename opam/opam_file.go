@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -262,10 +263,7 @@ func (f *OpamFile) AddPinDepend(dep PinDepend) {
 		foundIndex >= f.indirectPinDepends.startLine &&
 		foundIndex < f.indirectPinDepends.startLine+f.indirectPinDepends.numLines {
 		// Remove from indirect section
-		newLines := make([]string, 0, len(f.Lines)-1)
-		newLines = append(newLines, f.Lines[:foundIndex]...)
-		newLines = append(newLines, f.Lines[foundIndex+1:]...)
-		f.Lines = newLines
+		f.Lines = slices.Delete(f.Lines, foundIndex, foundIndex+1)
 
 		err := f.findRegions()
 		if err != nil {
@@ -274,21 +272,13 @@ func (f *OpamFile) AddPinDepend(dep PinDepend) {
 
 		// Add to main section (after pin-depends: [ line)
 		start = f.pinDepends.startLine + 1
-		newLines = make([]string, 0, len(f.Lines)+1)
-		newLines = append(newLines, f.Lines[:start]...)
-		newLines = append(newLines, dep.String())
-		newLines = append(newLines, f.Lines[start:]...)
-		f.Lines = newLines
+		f.Lines = slices.Insert(f.Lines, start, dep.String())
 	} else if foundIndex >= 0 {
 		// Found in main section, just replace it
 		f.Lines[foundIndex] = dep.String()
 	} else {
 		// Not found anywhere, add it after the pin-depends: [ line
-		newLines := make([]string, 0, len(f.Lines)+1)
-		newLines = append(newLines, f.Lines[:start]...)
-		newLines = append(newLines, dep.String())
-		newLines = append(newLines, f.Lines[start:]...)
-		f.Lines = newLines
+		f.Lines = slices.Insert(f.Lines, start, dep.String())
 	}
 
 	err := f.findRegions()
@@ -353,8 +343,6 @@ func (f *OpamFile) SetIndirect(indirects []PinDepend) {
 		}
 	}
 
-	var newLines []string
-
 	// If there's already an indirect region, replace it
 	if !f.indirectPinDepends.empty() {
 		// Build new indirect section
@@ -368,10 +356,7 @@ func (f *OpamFile) SetIndirect(indirects []PinDepend) {
 		start := f.indirectPinDepends.startLine
 		end := f.indirectPinDepends.startLine + f.indirectPinDepends.numLines
 
-		newLines = make([]string, 0, len(f.Lines)-f.indirectPinDepends.numLines+len(indirectLines))
-		newLines = append(newLines, f.Lines[:start]...)
-		newLines = append(newLines, indirectLines...)
-		newLines = append(newLines, f.Lines[end:]...)
+		f.Lines = slices.Replace(f.Lines, start, end, indirectLines...)
 	} else {
 		// Add new indirect section before the closing ] of pin-depends
 		indirectLines := []string{
@@ -386,13 +371,8 @@ func (f *OpamFile) SetIndirect(indirects []PinDepend) {
 		// Insert before the closing ] of pin-depends
 		insertPos := f.pinDepends.startLine + f.pinDepends.numLines - 1
 
-		newLines = make([]string, 0, len(f.Lines)+len(indirectLines))
-		newLines = append(newLines, f.Lines[:insertPos]...)
-		newLines = append(newLines, indirectLines...)
-		newLines = append(newLines, f.Lines[insertPos:]...)
+		f.Lines = slices.Insert(f.Lines, insertPos, indirectLines...)
 	}
-
-	f.Lines = newLines
 	err := f.findRegions()
 	if err != nil {
 		panic(err)
