@@ -208,12 +208,7 @@ func (dep PinDepend) String() string {
 	fullPackageName := dep.Package + ".dev"
 	// Use spacing similar to the example: package name padded with spaces between quotes
 	// Total width is package name in quotes (package + 2 for quotes) padded to 27 chars
-	quotedPkg := "\"" + fullPackageName + "\""
-	padding := ""
-	if len(quotedPkg) < 27 {
-		padding = strings.Repeat(" ", 27-len(quotedPkg))
-	}
-	return fmt.Sprintf("  [%s%s \"%s\"]", quotedPkg, padding, fullURL)
+	return fmt.Sprintf("  [%-27s \"%s\"]", "\""+fullPackageName+"\"", fullURL)
 }
 
 // ListPinDepends returns all direct pin-depends (excluding indirect dependencies).
