@@ -109,14 +109,14 @@ func (dep *PinDepend) FetchDependencies() ([]PinDepend, error) {
 		return nil, fmt.Errorf("failed to parse opam file: %w", err)
 	}
 
-	deps := append(opamFile.ListPinDepends(), opamFile.GetIndirect()...)
+	deps := append(opamFile.GetPinDepends(), opamFile.GetIndirect()...)
 	return deps, nil
 }
 
 func (f *OpamFile) UpdateIndirectDependencies() error {
 	seen := make(map[string]bool)
 	indirects := []PinDepend{}
-	for _, dep := range f.ListPinDepends() {
+	for _, dep := range f.GetPinDepends() {
 		newIndirects, err := dep.FetchDependencies()
 		if err != nil {
 			return err

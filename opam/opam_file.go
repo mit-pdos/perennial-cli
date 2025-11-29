@@ -242,8 +242,8 @@ func (dep PinDepend) String() string {
 	return fmt.Sprintf("  [%-27s \"%s\"]", "\""+fullPackageName+"\"", fullURL)
 }
 
-// ListPinDepends returns all direct pin-depends (excluding indirect dependencies).
-func (f *OpamFile) ListPinDepends() []PinDepend {
+// GetPinDepends returns all direct pin-depends (excluding indirect dependencies).
+func (f *OpamFile) GetPinDepends() []PinDepend {
 	if f.pinDepends.empty() {
 		return nil
 	}

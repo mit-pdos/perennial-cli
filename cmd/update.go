@@ -32,7 +32,7 @@ func doUpdate(cmd *cobra.Command, args []string) error {
 	}
 	opamFile, err := opam.Parse(bytes.NewReader(contents))
 	var updates []completedUpdate
-	for _, dep := range opamFile.ListPinDepends() {
+	for _, dep := range opamFile.GetPinDepends() {
 		if packageFlag != "" && packageFlag != dep.Package {
 			continue
 		}

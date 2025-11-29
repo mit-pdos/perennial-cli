@@ -105,7 +105,7 @@ func TestListPinDepends(t *testing.T) {
 	f, err := Parse(r)
 	require.NoError(t, err)
 
-	deps := f.ListPinDepends()
+	deps := f.GetPinDepends()
 	// Should only return direct dependencies (excluding indirect section)
 	require.Len(t, deps, 1)
 
@@ -141,7 +141,7 @@ func TestAddPinDepend_Update(t *testing.T) {
 		Commit:  "newcommit123",
 	})
 
-	deps := f.ListPinDepends()
+	deps := f.GetPinDepends()
 	found := false
 	for _, dep := range deps {
 		if dep.Package == "perennial" {
@@ -164,7 +164,7 @@ func TestAddPinDepend_Add(t *testing.T) {
 		Commit:  "abc123",
 	})
 
-	deps := f.ListPinDepends()
+	deps := f.GetPinDepends()
 	found := false
 	for _, dep := range deps {
 		if dep.Package == "new-package" {
