@@ -173,8 +173,8 @@ func parsePinDependLine(line string) *PinDepend {
 	}
 }
 
-// formatPinDependLine formats a PinDepend as an opam pin-depends line
-func formatPinDependLine(dep PinDepend) string {
+// String formats a PinDepend as an opam pin-depends line
+func (dep PinDepend) String() string {
 	// Normalize commit hash to first 15 characters
 	commit := dep.Commit
 	if len(commit) > 15 {
@@ -244,8 +244,6 @@ func (f *OpamFile) AddPinDepend(dep PinDepend) {
 		return
 	}
 
-	newLine := formatPinDependLine(dep)
-
 	start := f.pinDepends.startLine + 1
 	end := f.pinDepends.startLine + f.pinDepends.numLines - 1
 
@@ -278,17 +276,17 @@ func (f *OpamFile) AddPinDepend(dep PinDepend) {
 		start = f.pinDepends.startLine + 1
 		newLines = make([]string, 0, len(f.Lines)+1)
 		newLines = append(newLines, f.Lines[:start]...)
-		newLines = append(newLines, newLine)
+		newLines = append(newLines, dep.String())
 		newLines = append(newLines, f.Lines[start:]...)
 		f.Lines = newLines
 	} else if foundIndex >= 0 {
 		// Found in main section, just replace it
-		f.Lines[foundIndex] = newLine
+		f.Lines[foundIndex] = dep.String()
 	} else {
 		// Not found anywhere, add it after the pin-depends: [ line
 		newLines := make([]string, 0, len(f.Lines)+1)
 		newLines = append(newLines, f.Lines[:start]...)
-		newLines = append(newLines, newLine)
+		newLines = append(newLines, dep.String())
 		newLines = append(newLines, f.Lines[start:]...)
 		f.Lines = newLines
 	}
@@ -343,7 +341,7 @@ func (f *OpamFile) SetIndirect(indirects []PinDepend) {
 			existingDep := parsePinDependLine(f.Lines[i])
 			if existingDep != nil && existingDep.Package == indirect.Package {
 				// Update the existing entry
-				f.Lines[i] = formatPinDependLine(indirect)
+				f.Lines[i] = indirect.String()
 				found = true
 				break
 			}
@@ -362,7 +360,7 @@ func (f *OpamFile) SetIndirect(indirects []PinDepend) {
 		// Build new indirect section
 		indirectLines := []string{"  ## begin indirect"}
 		for _, dep := range filteredIndirects {
-			indirectLines = append(indirectLines, formatPinDependLine(dep))
+			indirectLines = append(indirectLines, dep.String())
 		}
 		indirectLines = append(indirectLines, "  ## end")
 
@@ -381,7 +379,7 @@ func (f *OpamFile) SetIndirect(indirects []PinDepend) {
 			"  ## begin indirect",
 		}
 		for _, dep := range filteredIndirects {
-			indirectLines = append(indirectLines, formatPinDependLine(dep))
+			indirectLines = append(indirectLines, dep.String())
 		}
 		indirectLines = append(indirectLines, "  ## end")
 
