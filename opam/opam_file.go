@@ -161,7 +161,7 @@ func (f *OpamFile) findRegions() error {
 // introduce parse errors
 func (f *OpamFile) update() {
 	if err := f.findRegions(); err != nil {
-		panic(fmt.Sprintf("internal error: %v", err))
+		panic(fmt.Errorf("internal error: %w", err))
 	}
 }
 
