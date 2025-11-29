@@ -15,8 +15,8 @@ var (
 	dependsRe       = regexp.MustCompile(`^\s*depends:\s*\[`)
 	pinDependsRe    = regexp.MustCompile(`^\s*pin-depends:\s*\[`)
 	closeBracketRe  = regexp.MustCompile(`^\s*\]`)
-	beginIndirectRe = regexp.MustCompile(`^\s*##\s*begin indirect\s*$`)
-	endIndirectRe   = regexp.MustCompile(`^\s*##\s*end\s*.*$`)
+	beginIndirectRe = regexp.MustCompile(`^\s*##\s*begin indirect\b.*$`)
+	endIndirectRe   = regexp.MustCompile(`^\s*##\s*end\b.*$`)
 	// Matches: ["package.name" "git+https://...#commit"]
 	pinDependLineRe = regexp.MustCompile(`^\s*\[\s*"([^"]+)"\s+"([^"]+)"\s*\]`)
 )
@@ -184,6 +184,9 @@ func parsePinDependLine(line string) *PinDepend {
 	if idx := strings.IndexByte(fullURL, '#'); idx >= 0 {
 		url = fullURL[:idx]
 		commit = fullURL[idx+1:]
+	}
+	if len(commit) > 15 {
+		commit = commit[:15]
 	}
 
 	return &PinDepend{

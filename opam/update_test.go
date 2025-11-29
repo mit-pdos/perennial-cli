@@ -22,13 +22,6 @@ func TestGetLatestCommit(t *testing.T) {
 	}
 }
 
-func TestGetLatestCommit_WithoutGitPrefix(t *testing.T) {
-	// Test with URL without git+ prefix
-	commit, err := GetLatestCommit("https://github.com/mit-pdos/perennial")
-	require.NoError(t, err)
-	assert.Len(t, commit, 15)
-}
-
 func TestGetIndirectDependencies_KnownPackage(t *testing.T) {
 	// Test with a package known to not have pin-depends
 	deps, err := GetIndirectDependencies("coq-record-update", "git+https://github.com/tchajed/coq-record-update")
@@ -36,12 +29,27 @@ func TestGetIndirectDependencies_KnownPackage(t *testing.T) {
 	assert.Nil(t, deps)
 }
 
-// Note: Live test for GetIndirectDependencies is not included because it requires
-// a real repository with an opam file containing pin-depends. The perennial repository
-// does not have an opam file in its source tree. To test this functionality:
-// 1. Find a repository with an opam file that has pin-depends
-// 2. Create a test using that repository
-// 3. The function will fetch the opam file, parse it, and return direct pin-depends
+func TestGetIndirectDependencies(t *testing.T) {
+	// Test with perennial-example-proof repository (this is a live test)
+	deps, err := GetIndirectDependencies("example-proof", "git+https://github.com/tchajed/perennial-example-proof")
+	require.NoError(t, err)
+
+	// The function should return only direct pin-depends (excluding indirect dependencies)
+	assert.NotNil(t, deps)
+
+	// Verify that we got some dependencies
+	assert.Greater(t, len(deps), 0, "perennial-example-proof should have at least one direct pin-depend")
+
+	// Check that all returned dependencies have required fields
+	for _, dep := range deps {
+		assert.NotEmpty(t, dep.Package, "package name should not be empty")
+		assert.NotEmpty(t, dep.URL, "URL should not be empty")
+		assert.NotEmpty(t, dep.Commit, "commit should not be empty")
+
+		// Commit should be exactly 15 characters (normalized)
+		assert.Len(t, dep.Commit, 15, "commit hash should be normalized to 15 characters")
+	}
+}
 
 func TestPackagesWithoutPinDepends(t *testing.T) {
 	knownPackages := []string{

@@ -173,7 +173,7 @@ func TestParsePinDependLine(t *testing.T) {
 			want: &PinDepend{
 				Package: "perennial",
 				URL:     "git+https://github.com/mit-pdos/perennial",
-				Commit:  "577140b0594fbdea",
+				Commit:  "577140b0594fbde",
 			},
 		},
 		{
