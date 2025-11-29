@@ -19,8 +19,6 @@ var (
 	pinDependLineRe = regexp.MustCompile(`^\s*\[\s*"([^"]+)"\s+"([^"]+)"\s*\]`)
 )
 
-// TODO: normalize commit hashes to first 15 characters
-
 type PinDepend struct {
 	Package string // package name (e.g., rocq-iris)
 	URL     string // URL (with git+https protocol)
@@ -177,9 +175,15 @@ func parsePinDependLine(line string) *PinDepend {
 
 // formatPinDependLine formats a PinDepend as an opam pin-depends line
 func formatPinDependLine(dep PinDepend) string {
+	// Normalize commit hash to first 15 characters
+	commit := dep.Commit
+	if len(commit) > 15 {
+		commit = commit[:15]
+	}
+
 	fullURL := dep.URL
-	if dep.Commit != "" {
-		fullURL = dep.URL + "#" + dep.Commit
+	if commit != "" {
+		fullURL = dep.URL + "#" + commit
 	}
 	// Add .dev suffix to package name if not already present
 	fullPackageName := dep.Package
@@ -218,6 +222,7 @@ func (f *OpamFile) ListPinDepends() []PinDepend {
 
 // AddPinDepend adds or updates a pin-depends entry in the opam file.
 // If an entry for the package already exists, it will be replaced.
+// If the package is in the indirect section, it will be removed from there.
 // If no pin-depends block exists in the file, the function returns without changes.
 // The new entry is added immediately after the "pin-depends: [" line if it doesn't already exist.
 func (f *OpamFile) AddPinDepend(dep PinDepend) {
@@ -231,23 +236,48 @@ func (f *OpamFile) AddPinDepend(dep PinDepend) {
 	end := f.pinDepends.startLine + f.pinDepends.numLines - 1
 
 	// Search for existing entry and replace it
-	//
-	// TODO: handle dependency being already present as indirect
+	foundIndex := -1
 	for i := start; i < end; i++ {
 		existingDep := parsePinDependLine(f.Lines[i])
 		if existingDep != nil && existingDep.Package == dep.Package {
-			f.Lines[i] = newLine
-			return
+			foundIndex = i
+			break
 		}
 	}
 
-	// If not found, add it after the pin-depends: [ line
-	// Insert at start position
-	newLines := make([]string, 0, len(f.Lines)+1)
-	newLines = append(newLines, f.Lines[:start]...)
-	newLines = append(newLines, newLine)
-	newLines = append(newLines, f.Lines[start:]...)
-	f.Lines = newLines
+	// If found in indirect section, remove it from there and add to main section
+	if foundIndex >= 0 && !f.indirectPinDepends.empty() &&
+		foundIndex >= f.indirectPinDepends.startLine &&
+		foundIndex < f.indirectPinDepends.startLine+f.indirectPinDepends.numLines {
+		// Remove from indirect section
+		newLines := make([]string, 0, len(f.Lines)-1)
+		newLines = append(newLines, f.Lines[:foundIndex]...)
+		newLines = append(newLines, f.Lines[foundIndex+1:]...)
+		f.Lines = newLines
+
+		err := f.findRegions()
+		if err != nil {
+			panic(err)
+		}
+
+		// Add to main section (after pin-depends: [ line)
+		start = f.pinDepends.startLine + 1
+		newLines = make([]string, 0, len(f.Lines)+1)
+		newLines = append(newLines, f.Lines[:start]...)
+		newLines = append(newLines, newLine)
+		newLines = append(newLines, f.Lines[start:]...)
+		f.Lines = newLines
+	} else if foundIndex >= 0 {
+		// Found in main section, just replace it
+		f.Lines[foundIndex] = newLine
+	} else {
+		// Not found anywhere, add it after the pin-depends: [ line
+		newLines := make([]string, 0, len(f.Lines)+1)
+		newLines = append(newLines, f.Lines[:start]...)
+		newLines = append(newLines, newLine)
+		newLines = append(newLines, f.Lines[start:]...)
+		f.Lines = newLines
+	}
 
 	err := f.findRegions()
 	if err != nil {
@@ -280,16 +310,44 @@ func (f *OpamFile) SetIndirect(indirects []PinDepend) {
 		return
 	}
 
-	var newLines []string
+	// First, update any packages that are already in the main pin-depends section
+	// and filter them out from the indirects list
+	var filteredIndirects []PinDepend
+	for _, indirect := range indirects {
+		found := false
+		start := f.pinDepends.startLine + 1
+		indirectStart := f.indirectPinDepends.startLine
+		indirectEnd := f.indirectPinDepends.startLine + f.indirectPinDepends.numLines
 
-	// TODO: if any indirects are already in pin-depends, change those
-	// URLs/hashes and don't add them redundantly to indirects
+		// Check if package exists in main pin-depends (outside indirect section)
+		for i := start; i < f.pinDepends.startLine+f.pinDepends.numLines-1; i++ {
+			// Skip lines in indirect section
+			if !f.indirectPinDepends.empty() && i >= indirectStart && i < indirectEnd {
+				continue
+			}
+
+			existingDep := parsePinDependLine(f.Lines[i])
+			if existingDep != nil && existingDep.Package == indirect.Package {
+				// Update the existing entry
+				f.Lines[i] = formatPinDependLine(indirect)
+				found = true
+				break
+			}
+		}
+
+		// Only add to indirect section if not found in main section
+		if !found {
+			filteredIndirects = append(filteredIndirects, indirect)
+		}
+	}
+
+	var newLines []string
 
 	// If there's already an indirect region, replace it
 	if !f.indirectPinDepends.empty() {
 		// Build new indirect section
 		indirectLines := []string{"  ## begin indirect"}
-		for _, dep := range indirects {
+		for _, dep := range filteredIndirects {
 			indirectLines = append(indirectLines, formatPinDependLine(dep))
 		}
 		indirectLines = append(indirectLines, "  ## end")
@@ -308,7 +366,7 @@ func (f *OpamFile) SetIndirect(indirects []PinDepend) {
 			"",
 			"  ## begin indirect",
 		}
-		for _, dep := range indirects {
+		for _, dep := range filteredIndirects {
 			indirectLines = append(indirectLines, formatPinDependLine(dep))
 		}
 		indirectLines = append(indirectLines, "  ## end")

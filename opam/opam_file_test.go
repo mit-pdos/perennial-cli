@@ -23,13 +23,13 @@ depends: [
 ]
 
 pin-depends: [
-  ["perennial.dev"           "git+https://github.com/mit-pdos/perennial#577140b0594fbdea"]
+  ["perennial.dev"           "git+https://github.com/mit-pdos/perennial#577140b0594fbde"]
 
   ## begin indirect
-  ["coq-record-update.dev"   "git+https://github.com/tchajed/coq-record-update#7b2645210331c3ec"]
+  ["coq-record-update.dev"   "git+https://github.com/tchajed/coq-record-update#7b2645210331c3e"]
   ["rocq-stdpp.dev"          "git+https://gitlab.mpi-sws.org/iris/stdpp#187909f0c15b7c8"]
   ["rocq-iris.dev"           "git+https://gitlab.mpi-sws.org/iris/iris#fde0f8699242184"]
-  ["iris-named-props.dev"    "git+https://github.com/tchajed/iris-named-props#c388714a93b1c043"]
+  ["iris-named-props.dev"    "git+https://github.com/tchajed/iris-named-props#c388714a93b1c04"]
   ## end
 ]
 
@@ -69,7 +69,7 @@ func TestListPinDepends(t *testing.T) {
 	// Check first dependency
 	assert.Equal(t, "perennial", deps[0].Package)
 	assert.Equal(t, "git+https://github.com/mit-pdos/perennial", deps[0].URL)
-	assert.Equal(t, "577140b0594fbdea", deps[0].Commit)
+	assert.Equal(t, "577140b0594fbde", deps[0].Commit)
 
 	// Check an indirect dependency
 	assert.Equal(t, "coq-record-update", deps[1].Package)
@@ -294,7 +294,7 @@ func TestFormatPinDependLine(t *testing.T) {
 				URL:     "git+https://github.com/mit-pdos/perennial",
 				Commit:  "577140b0594fbdea",
 			},
-			want: `  ["perennial.dev"             "git+https://github.com/mit-pdos/perennial#577140b0594fbdea"]`,
+			want: `  ["perennial.dev"             "git+https://github.com/mit-pdos/perennial#577140b0594fbde"]`,
 		},
 		{
 			name: "without commit",
