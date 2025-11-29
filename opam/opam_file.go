@@ -19,6 +19,8 @@ var (
 	pinDependLineRe = regexp.MustCompile(`^\s*\[\s*"([^"]+)"\s+"([^"]+)"\s*\]`)
 )
 
+// TODO: normalize commit hashes to first 15 characters
+
 type PinDepend struct {
 	Package string // package name (e.g., rocq-iris)
 	URL     string // URL (with git+https protocol)
@@ -174,15 +176,15 @@ func parsePinDependLine(line string) *PinDepend {
 }
 
 // formatPinDependLine formats a PinDepend as an opam pin-depends line
-func formatPinDependLine(packageName, url, commit string) string {
-	fullURL := url
-	if commit != "" {
-		fullURL = url + "#" + commit
+func formatPinDependLine(dep PinDepend) string {
+	fullURL := dep.URL
+	if dep.Commit != "" {
+		fullURL = dep.URL + "#" + dep.Commit
 	}
 	// Add .dev suffix to package name if not already present
-	fullPackageName := packageName
-	if !strings.HasSuffix(packageName, ".dev") {
-		fullPackageName = packageName + ".dev"
+	fullPackageName := dep.Package
+	if !strings.HasSuffix(dep.Package, ".dev") {
+		fullPackageName = dep.Package + ".dev"
 	}
 	// Use spacing similar to the example: package name padded with spaces between quotes
 	// Total width is package name in quotes (package + 2 for quotes) padded to 27 chars
@@ -214,20 +216,26 @@ func (f *OpamFile) ListPinDepends() []PinDepend {
 	return deps
 }
 
-func (f *OpamFile) SetPinDepend(packageName, url, commit string) {
+// AddPinDepend adds or updates a pin-depends entry in the opam file.
+// If an entry for the package already exists, it will be replaced.
+// If no pin-depends block exists in the file, the function returns without changes.
+// The new entry is added immediately after the "pin-depends: [" line if it doesn't already exist.
+func (f *OpamFile) AddPinDepend(dep PinDepend) {
 	if f.pinDepends.empty() {
 		return
 	}
 
-	newLine := formatPinDependLine(packageName, url, commit)
+	newLine := formatPinDependLine(dep)
 
 	start := f.pinDepends.startLine + 1
 	end := f.pinDepends.startLine + f.pinDepends.numLines - 1
 
 	// Search for existing entry and replace it
+	//
+	// TODO: handle dependency being already present as indirect
 	for i := start; i < end; i++ {
-		dep := parsePinDependLine(f.Lines[i])
-		if dep != nil && dep.Package == packageName {
+		existingDep := parsePinDependLine(f.Lines[i])
+		if existingDep != nil && existingDep.Package == dep.Package {
 			f.Lines[i] = newLine
 			return
 		}
@@ -274,12 +282,15 @@ func (f *OpamFile) SetIndirect(indirects []PinDepend) {
 
 	var newLines []string
 
+	// TODO: if any indirects are already in pin-depends, change those
+	// URLs/hashes and don't add them redundantly to indirects
+
 	// If there's already an indirect region, replace it
 	if !f.indirectPinDepends.empty() {
 		// Build new indirect section
 		indirectLines := []string{"  ## begin indirect"}
 		for _, dep := range indirects {
-			indirectLines = append(indirectLines, formatPinDependLine(dep.Package, dep.URL, dep.Commit))
+			indirectLines = append(indirectLines, formatPinDependLine(dep))
 		}
 		indirectLines = append(indirectLines, "  ## end")
 
@@ -298,7 +309,7 @@ func (f *OpamFile) SetIndirect(indirects []PinDepend) {
 			"  ## begin indirect",
 		}
 		for _, dep := range indirects {
-			indirectLines = append(indirectLines, formatPinDependLine(dep.Package, dep.URL, dep.Commit))
+			indirectLines = append(indirectLines, formatPinDependLine(dep))
 		}
 		indirectLines = append(indirectLines, "  ## end")
 

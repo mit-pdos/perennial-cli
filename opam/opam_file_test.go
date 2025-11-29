@@ -88,13 +88,17 @@ func TestGetIndirect(t *testing.T) {
 	assert.Equal(t, "iris-named-props", indirect[3].Package)
 }
 
-func TestSetPinDepend_Update(t *testing.T) {
+func TestAddPinDepend_Update(t *testing.T) {
 	r := strings.NewReader(exampleOpam)
 	f, err := Parse(r)
 	require.NoError(t, err)
 
 	// Update existing dependency
-	f.SetPinDepend("perennial", "git+https://github.com/mit-pdos/perennial", "newcommit123")
+	f.AddPinDepend(PinDepend{
+		Package: "perennial",
+		URL:     "git+https://github.com/mit-pdos/perennial",
+		Commit:  "newcommit123",
+	})
 
 	deps := f.ListPinDepends()
 	found := false
@@ -107,13 +111,17 @@ func TestSetPinDepend_Update(t *testing.T) {
 	assert.True(t, found, "perennial not found after update")
 }
 
-func TestSetPinDepend_Add(t *testing.T) {
+func TestAddPinDepend_Add(t *testing.T) {
 	r := strings.NewReader(exampleOpam)
 	f, err := Parse(r)
 	require.NoError(t, err)
 
 	// Add new dependency
-	f.SetPinDepend("new-package", "git+https://example.com/package", "abc123")
+	f.AddPinDepend(PinDepend{
+		Package: "new-package",
+		URL:     "git+https://example.com/package",
+		Commit:  "abc123",
+	})
 
 	deps := f.ListPinDepends()
 	found := false
@@ -275,38 +283,42 @@ func TestParseErrors(t *testing.T) {
 
 func TestFormatPinDependLine(t *testing.T) {
 	tests := []struct {
-		name   string
-		pkg    string
-		url    string
-		commit string
-		want   string
+		name string
+		dep  PinDepend
+		want string
 	}{
 		{
-			name:   "with commit",
-			pkg:    "perennial",
-			url:    "git+https://github.com/mit-pdos/perennial",
-			commit: "577140b0594fbdea",
-			want:   `  ["perennial.dev"             "git+https://github.com/mit-pdos/perennial#577140b0594fbdea"]`,
+			name: "with commit",
+			dep: PinDepend{
+				Package: "perennial",
+				URL:     "git+https://github.com/mit-pdos/perennial",
+				Commit:  "577140b0594fbdea",
+			},
+			want: `  ["perennial.dev"             "git+https://github.com/mit-pdos/perennial#577140b0594fbdea"]`,
 		},
 		{
-			name:   "without commit",
-			pkg:    "pkg",
-			url:    "git+https://example.com/repo",
-			commit: "",
-			want:   `  ["pkg.dev"                   "git+https://example.com/repo"]`,
+			name: "without commit",
+			dep: PinDepend{
+				Package: "pkg",
+				URL:     "git+https://example.com/repo",
+				Commit:  "",
+			},
+			want: `  ["pkg.dev"                   "git+https://example.com/repo"]`,
 		},
 		{
-			name:   "long package name",
-			pkg:    "very-long-package-name",
-			url:    "git+https://example.com/repo",
-			commit: "abc",
-			want:   `  ["very-long-package-name.dev" "git+https://example.com/repo#abc"]`,
+			name: "long package name",
+			dep: PinDepend{
+				Package: "very-long-package-name",
+				URL:     "git+https://example.com/repo",
+				Commit:  "abc",
+			},
+			want: `  ["very-long-package-name.dev" "git+https://example.com/repo#abc"]`,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := formatPinDependLine(tt.pkg, tt.url, tt.commit)
+			got := formatPinDependLine(tt.dep)
 			assert.Equal(t, tt.want, got)
 		})
 	}
