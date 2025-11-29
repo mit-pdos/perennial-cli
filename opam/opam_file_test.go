@@ -58,6 +58,48 @@ func TestParse(t *testing.T) {
 	assert.Equal(t, 23, f.indirectPinDepends.endLine)
 }
 
+func TestParse_AddMissingBlocks_Empty(t *testing.T) {
+	// Test parsing a minimal opam file with no depends or pin-depends
+	minimalOpam := `opam-version: "2.0"
+version: "dev"
+`
+	r := strings.NewReader(minimalOpam)
+	f, err := Parse(r)
+	require.NoError(t, err)
+
+	// Both depends and pin-depends should have been added
+	assert.False(t, f.depends.empty(), "depends block should be added")
+	assert.False(t, f.pinDepends.empty(), "pin-depends block should be added")
+
+	// Verify the structure
+	output := f.String()
+	assert.Contains(t, output, "depends: [")
+	assert.Contains(t, output, "pin-depends: [")
+}
+
+func TestParse_AddMissingBlocks_NoPinDepends(t *testing.T) {
+	// Test parsing an opam file with depends but no pin-depends
+	opamWithDepends := `opam-version: "2.0"
+version: "dev"
+
+depends: [
+  "coq"
+]
+`
+	r := strings.NewReader(opamWithDepends)
+	f, err := Parse(r)
+	require.NoError(t, err)
+
+	// depends should exist, pin-depends should have been added
+	assert.False(t, f.depends.empty(), "depends block should exist")
+	assert.False(t, f.pinDepends.empty(), "pin-depends block should be added")
+
+	// Verify the structure
+	output := f.String()
+	assert.Contains(t, output, "depends: [")
+	assert.Contains(t, output, "pin-depends: [")
+}
+
 func TestListPinDepends(t *testing.T) {
 	r := strings.NewReader(exampleOpam)
 	f, err := Parse(r)

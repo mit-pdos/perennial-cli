@@ -179,6 +179,14 @@ func Parse(r io.Reader) (*OpamFile, error) {
 	if err != nil {
 		return nil, err
 	}
+	if f.depends.empty() {
+		f.Lines = slices.Insert(f.Lines, f.depends.endLine, "depends: [", "]")
+		f.depends = region{startLine: len(f.Lines) - 2, endLine: len(f.Lines)}
+	}
+	if f.pinDepends.empty() {
+		f.Lines = slices.Insert(f.Lines, f.depends.endLine, "pin-depends: [", "]")
+		f.update()
+	}
 	return f, nil
 }
 
