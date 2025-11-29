@@ -8,9 +8,9 @@ import (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "perennial-tool",
+	Use:   "perennial-cli",
 	Short: "CLI to manage perennial verification projects",
-	Long:  `perennial-tool helps manage and build verification projects based on Perennial.`,
+	Long:  `perennial-cli helps manage and build verification projects based on Perennial.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	// Run: func(cmd *cobra.Command, args []string) { },
@@ -30,7 +30,7 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.perennial-tool.yaml)")
+	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.perennial-cli.yaml)")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.

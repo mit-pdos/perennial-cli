@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is `perennial-tool`, a Go utility library for managing opam files, specifically designed to handle pin-depends and their transitive indirect dependencies. The tool is used in the context of the Perennial verification framework.
+This is `perennial-cli`, a Go utility library for managing opam files, specifically designed to handle pin-depends and their transitive indirect dependencies. The tool is used in the context of the Perennial verification framework.
 
 ## Build and Test Commands
 
