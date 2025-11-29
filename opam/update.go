@@ -47,24 +47,24 @@ func GetLatestCommit(gitURL string) (string, error) {
 	return commit, nil
 }
 
-// fetchOpamFile fetches an opam file from a URL.
+// fetchOpamFile fetches an opam file from a URL at a specific commit.
 // The URL should be a git repository URL (with or without git+ prefix).
 // It constructs the raw file URL based on the repository host.
-func fetchOpamFile(gitURL, packageName string) ([]byte, error) {
+func fetchOpamFile(gitURL, packageName, commit string) ([]byte, error) {
 	// Strip git+ prefix if present
 	url := strings.TrimPrefix(gitURL, "git+")
 
 	// Convert git URL to raw file URL
 	var rawURL string
 	if strings.Contains(url, "github.com") {
-		// GitHub: https://github.com/user/repo -> https://raw.githubusercontent.com/user/repo/master/package.opam
+		// GitHub: https://github.com/user/repo -> https://raw.githubusercontent.com/user/repo/commit/package.opam
 		url = strings.TrimSuffix(url, ".git")
 		url = strings.Replace(url, "github.com", "raw.githubusercontent.com", 1)
-		rawURL = fmt.Sprintf("%s/master/%s.opam", url, packageName)
+		rawURL = fmt.Sprintf("%s/%s/%s.opam", url, commit, packageName)
 	} else if strings.Contains(url, "gitlab") {
-		// GitLab: https://gitlab.com/user/repo -> https://gitlab.com/user/repo/-/raw/master/package.opam
+		// GitLab: https://gitlab.com/user/repo -> https://gitlab.com/user/repo/-/raw/commit/package.opam
 		url = strings.TrimSuffix(url, ".git")
-		rawURL = fmt.Sprintf("%s/-/raw/master/%s.opam", url, packageName)
+		rawURL = fmt.Sprintf("%s/-/raw/%s/%s.opam", url, commit, packageName)
 	} else {
 		return nil, fmt.Errorf("unsupported git hosting service: %s", url)
 	}
@@ -87,17 +87,17 @@ func fetchOpamFile(gitURL, packageName string) ([]byte, error) {
 	return data, nil
 }
 
-// GetDependencies fetches the (transitive) dependencies of a package.
-// It fetches the package's opam file from the given git URL and returns
+// FetchDependencies fetches the (transitive) dependencies of a package.
+// It fetches the package's opam file at the specified git commit and returns
 // its pin-depends.
-func GetDependencies(packageName, gitURL string) ([]PinDepend, error) {
+func FetchDependencies(dep PinDepend) ([]PinDepend, error) {
 	// Check if this package is known to not have pin-depends
-	if packagesWithoutPinDepends[packageName] {
+	if packagesWithoutPinDepends[dep.Package] {
 		return nil, nil
 	}
 
-	// Fetch the opam file
-	data, err := fetchOpamFile(gitURL, packageName)
+	// Fetch the opam file at the specific commit
+	data, err := fetchOpamFile(dep.URL, dep.Package, dep.Commit)
 	if err != nil {
 		return nil, err
 	}

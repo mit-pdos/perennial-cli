@@ -22,23 +22,37 @@ func TestGetLatestCommit(t *testing.T) {
 	}
 }
 
-func TestGetDependencies_KnownPackage(t *testing.T) {
+func TestFetchDependencies_KnownPackage(t *testing.T) {
 	// Test with a package known to not have pin-depends (shouldn't trigger an HTTP request)
-	deps, err := GetDependencies("coq-record-update", "git+https://github.com/tchajed/coq-record-update")
+	dep := PinDepend{
+		Package: "coq-record-update",
+		URL:     "git+https://github.com/tchajed/coq-record-update",
+		Commit:  "000000000000000", // Dummy commit - won't be used since package is in skip list
+	}
+	deps, err := FetchDependencies(dep)
 	require.NoError(t, err)
 	assert.Nil(t, deps)
 }
 
-func TestGetDependencies(t *testing.T) {
+func TestFetchDependencies(t *testing.T) {
 	// Test with perennial-example-proof repository (this is a live test)
-	deps, err := GetDependencies("example-proof", "git+https://github.com/tchajed/perennial-example-proof")
+	// First, get the latest commit
+	commit, err := GetLatestCommit("git+https://github.com/tchajed/perennial-example-proof")
 	require.NoError(t, err)
 
-	// The function should return only direct pin-depends (excluding indirect dependencies)
+	dep := PinDepend{
+		Package: "example-proof",
+		URL:     "git+https://github.com/tchajed/perennial-example-proof",
+		Commit:  commit,
+	}
+	deps, err := FetchDependencies(dep)
+	require.NoError(t, err)
+
+	// The function should return all pin-depends (both direct and indirect)
 	assert.NotNil(t, deps)
 
 	// Verify that we got some dependencies
-	assert.Greater(t, len(deps), 0, "perennial-example-proof should have at least one direct pin-depend")
+	assert.Greater(t, len(deps), 0, "perennial-example-proof should have at least one pin-depend")
 
 	// Check that all returned dependencies have required fields
 	for _, dep := range deps {
