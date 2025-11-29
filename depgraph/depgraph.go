@@ -57,12 +57,12 @@ func Parse(r io.Reader) (*Graph, error) {
 
 		// Create a Dep for each (dependency, target) pair
 		for _, target := range targets {
+			nodes.Set(target, struct{}{})
 			for _, dep := range dependencies {
 				deps = append(deps, Dep{
 					Target: target,
 					Source: dep,
 				})
-				nodes.Set(target, struct{}{})
 				nodes.Set(dep, struct{}{})
 			}
 		}
@@ -95,18 +95,26 @@ type DepChain struct {
 	path []string
 }
 
+func (c DepChain) Sources() []string {
+	return c.path[1:]
+}
+
 func (c DepChain) Source() string {
 	return c.path[len(c.path)-1]
 }
 
-// Deps gets all transitive dependencies of target
-func (g *Graph) Deps(target string) []DepChain {
+// Deps gets all transitive dependencies of targets
+func (g *Graph) Deps(targets []string) []DepChain {
 	// Build adjacency list: target -> list of sources
 	adjacency := orderedmap.New[string, []string]()
 	for _, dep := range g.deps {
 		sources, _ := adjacency.Get(dep.Target)
 		adjacency.Set(dep.Target, append(sources, dep.Source))
 	}
+	// fmt.Printf("adjacency:\n")
+	// for target, sources := range adjacency.FromOldest() {
+	// 	fmt.Printf("%v -> %v\n", target, sources)
+	// }
 
 	var chains []DepChain
 	visited := make(map[string]bool)
@@ -117,11 +125,15 @@ func (g *Graph) Deps(target string) []DepChain {
 		node string
 		path []string
 	}
-	queue := []queueItem{{node: target, path: []string{target}}}
-	visited[target] = true
+	var queue []queueItem
+	for _, target := range targets {
+		queue = append(queue, queueItem{node: target, path: []string{target}})
+		visited[target] = true
+	}
 
 	for len(queue) > 0 {
-		item, queue := queue[0], queue[1:]
+		item := queue[0]
+		queue = queue[1:]
 
 		sources, hasDeps := adjacency.Get(item.node)
 		if !hasDeps {
