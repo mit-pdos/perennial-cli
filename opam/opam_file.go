@@ -10,6 +10,16 @@ import (
 	"strings"
 )
 
+const HASH_ABBREV_LENGTH = 10
+
+// Abbreviate commit hash
+func abbreviateHash(commit string) string {
+	if len(commit) > HASH_ABBREV_LENGTH {
+		return commit[:HASH_ABBREV_LENGTH]
+	}
+	return commit
+}
+
 var (
 	// Regex patterns for parsing opam files
 	dependsRe       = regexp.MustCompile(`^\s*depends:\s*\[`)
@@ -35,9 +45,7 @@ func (dep *PinDepend) Normalize() *PinDepend {
 	if strings.HasPrefix("https://", dep.URL) {
 		dep.URL = "git+" + dep.URL
 	}
-	if len(dep.Commit) > 15 {
-		dep.Commit = dep.Commit[:15]
-	}
+	dep.Commit = abbreviateHash(dep.Commit)
 	return dep
 }
 
@@ -226,15 +234,9 @@ func parsePinDependLine(line string) *PinDepend {
 
 // String formats a PinDepend as an opam pin-depends line
 func (dep PinDepend) String() string {
-	// Normalize commit hash to first 15 characters
-	commit := dep.Commit
-	if len(commit) > 15 {
-		commit = commit[:15]
-	}
-
 	fullURL := dep.URL
-	if commit != "" {
-		fullURL = dep.URL + "#" + commit
+	if dep.Commit != "" {
+		fullURL = dep.URL + "#" + abbreviateHash(dep.Commit)
 	}
 	fullPackageName := dep.Package + ".dev"
 	// Use spacing similar to the example: package name padded with spaces between quotes

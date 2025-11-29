@@ -24,12 +24,12 @@ depends: [
 ]
 
 pin-depends: [
-  ["perennial.dev"           "git+https://github.com/mit-pdos/perennial#577140b0594fbde"]
+  ["perennial.dev"           "git+https://github.com/mit-pdos/perennial#577140b059"]
 
   ## begin indirect
-  ["rocq-stdpp.dev"          "git+https://gitlab.mpi-sws.org/iris/stdpp#187909f0c15b7c8"]
-  ["rocq-iris.dev"           "git+https://gitlab.mpi-sws.org/iris/iris#fde0f8699242184"]
-  ["iris-named-props.dev"    "git+https://github.com/tchajed/iris-named-props#c388714a93b1c04"]
+  ["rocq-stdpp.dev"          "git+https://gitlab.mpi-sws.org/iris/stdpp#187909f0c1"]
+  ["rocq-iris.dev"           "git+https://gitlab.mpi-sws.org/iris/iris#fde0f86992"]
+  ["iris-named-props.dev"    "git+https://github.com/tchajed/iris-named-props#c388714a93"]
   ## end
 ]
 
@@ -112,7 +112,7 @@ func TestListPinDepends(t *testing.T) {
 	// Check the direct dependency
 	assert.Equal(t, "perennial", deps[0].Package)
 	assert.Equal(t, "git+https://github.com/mit-pdos/perennial", deps[0].URL)
-	assert.Equal(t, "577140b0594fbde", deps[0].Commit)
+	assert.Equal(t, "577140b059", deps[0].Commit)
 }
 
 func TestGetIndirect(t *testing.T) {
@@ -138,7 +138,7 @@ func TestAddPinDepend_Update(t *testing.T) {
 	f.AddPinDepend(PinDepend{
 		Package: "perennial",
 		URL:     "git+https://github.com/mit-pdos/perennial",
-		Commit:  "newcommit123",
+		Commit:  "newcommit1",
 	})
 
 	deps := f.GetPinDepends()
@@ -146,7 +146,7 @@ func TestAddPinDepend_Update(t *testing.T) {
 	for _, dep := range deps {
 		if dep.Package == "perennial" {
 			found = true
-			assert.Equal(t, "newcommit123", dep.Commit)
+			assert.Equal(t, "newcommit1", dep.Commit)
 		}
 	}
 	assert.True(t, found, "perennial not found after update")
@@ -216,7 +216,7 @@ func TestParsePinDependLine(t *testing.T) {
 			want: &PinDepend{
 				Package: "perennial",
 				URL:     "git+https://github.com/mit-pdos/perennial",
-				Commit:  "577140b0594fbde",
+				Commit:  "577140b059",
 			},
 		},
 		{
@@ -340,7 +340,7 @@ func TestFormatPinDependLine(t *testing.T) {
 				URL:     "git+https://github.com/mit-pdos/perennial",
 				Commit:  "577140b0594fbdea",
 			},
-			want: `  ["perennial.dev"             "git+https://github.com/mit-pdos/perennial#577140b0594fbde"]`,
+			want: `  ["perennial.dev"             "git+https://github.com/mit-pdos/perennial#577140b059"]`,
 		},
 		{
 			name: "without commit",

@@ -12,8 +12,8 @@ func TestGetLatestCommit(t *testing.T) {
 	commit, err := GetLatestCommit("git+https://github.com/mit-pdos/perennial")
 	require.NoError(t, err)
 
-	// Commit should be exactly 15 characters (normalized)
-	assert.Len(t, commit, 15)
+	// Commit should be exactly HASH_ABBREV_LENGTH characters (normalized)
+	assert.Len(t, commit, HASH_ABBREV_LENGTH)
 
 	// Commit should be a valid hex string
 	for _, c := range commit {
@@ -60,8 +60,8 @@ func TestFetchDependencies(t *testing.T) {
 		assert.NotEmpty(t, dep.URL, "URL should not be empty")
 		assert.NotEmpty(t, dep.Commit, "commit should not be empty")
 
-		// Commit should be exactly 15 characters (normalized)
-		assert.Len(t, dep.Commit, 15, "commit hash should be normalized to 15 characters")
+		// Commit should be exactly HASH_ABBREV_LENGTH characters (normalized)
+		assert.Len(t, dep.Commit, HASH_ABBREV_LENGTH, "commit hash should be normalized")
 	}
 }
 

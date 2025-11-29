@@ -21,7 +21,7 @@ var packagesWithoutPinDepends = map[string]bool{
 
 // GetLatestCommit returns the latest commit hash from a git URL.
 //
-// Trims the commit hash to the first 15 characters.
+// Trims the commit hash to HASH_ABBREV_LENGTH characters.
 func GetLatestCommit(gitURL string) (string, error) {
 	// Strip git+ prefix if present
 	url := strings.TrimPrefix(gitURL, "git+")
@@ -39,11 +39,7 @@ func GetLatestCommit(gitURL string) (string, error) {
 		return "", fmt.Errorf("unexpected git ls-remote output: %s", output)
 	}
 
-	commit := parts[0]
-	// Normalize to first 15 characters
-	if len(commit) > 15 {
-		commit = commit[:15]
-	}
+	commit := abbreviateHash(parts[0])
 
 	return commit, nil
 }
