@@ -27,6 +27,20 @@ type PinDepend struct {
 	Commit  string // commit hash
 }
 
+// Normalize fixes dep.
+//
+// Returns dep.
+func (dep *PinDepend) Normalize() *PinDepend {
+	dep.Package = strings.TrimSuffix(dep.Package, ".dev")
+	if strings.HasPrefix("https://", dep.URL) {
+		dep.URL = "git+" + dep.URL
+	}
+	if len(dep.Commit) > 15 {
+		dep.Commit = dep.Commit[:15]
+	}
+	return dep
+}
+
 type region struct {
 	startLine int
 	endLine   int // exclusive
@@ -183,8 +197,6 @@ func parsePinDependLine(line string) *PinDepend {
 	}
 
 	packageName := matches[1]
-	// Strip .dev suffix from package name
-	packageName = strings.TrimSuffix(packageName, ".dev")
 
 	fullURL := matches[2]
 
@@ -195,15 +207,13 @@ func parsePinDependLine(line string) *PinDepend {
 		url = fullURL[:idx]
 		commit = fullURL[idx+1:]
 	}
-	if len(commit) > 15 {
-		commit = commit[:15]
-	}
 
-	return &PinDepend{
+	dep := &PinDepend{
 		Package: packageName,
 		URL:     url,
 		Commit:  commit,
 	}
+	return dep.Normalize()
 }
 
 // String formats a PinDepend as an opam pin-depends line
