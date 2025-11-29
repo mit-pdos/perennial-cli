@@ -64,15 +64,13 @@ func TestListPinDepends(t *testing.T) {
 	require.NoError(t, err)
 
 	deps := f.ListPinDepends()
-	require.Len(t, deps, 5)
+	// Should only return direct dependencies (excluding indirect section)
+	require.Len(t, deps, 1)
 
-	// Check first dependency
+	// Check the direct dependency
 	assert.Equal(t, "perennial", deps[0].Package)
 	assert.Equal(t, "git+https://github.com/mit-pdos/perennial", deps[0].URL)
 	assert.Equal(t, "577140b0594fbde", deps[0].Commit)
-
-	// Check an indirect dependency
-	assert.Equal(t, "coq-record-update", deps[1].Package)
 }
 
 func TestGetIndirect(t *testing.T) {

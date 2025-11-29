@@ -200,6 +200,7 @@ func formatPinDependLine(dep PinDepend) string {
 	return fmt.Sprintf("  [%s%s \"%s\"]", quotedPkg, padding, fullURL)
 }
 
+// ListPinDepends returns all direct pin-depends (excluding indirect dependencies).
 func (f *OpamFile) ListPinDepends() []PinDepend {
 	if f.pinDepends.empty() {
 		return nil
@@ -209,7 +210,20 @@ func (f *OpamFile) ListPinDepends() []PinDepend {
 	start := f.pinDepends.startLine + 1
 	end := f.pinDepends.startLine + f.pinDepends.numLines - 1
 
+	// Determine the range of indirect dependencies to skip
+	indirectStart := -1
+	indirectEnd := -1
+	if !f.indirectPinDepends.empty() {
+		indirectStart = f.indirectPinDepends.startLine
+		indirectEnd = f.indirectPinDepends.startLine + f.indirectPinDepends.numLines
+	}
+
 	for i := start; i < end; i++ {
+		// Skip lines in the indirect section
+		if indirectStart >= 0 && i >= indirectStart && i < indirectEnd {
+			continue
+		}
+
 		line := f.Lines[i]
 		dep := parsePinDependLine(line)
 		if dep != nil {
