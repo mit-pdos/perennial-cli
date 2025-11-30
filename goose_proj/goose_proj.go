@@ -14,25 +14,31 @@ import (
 type GooseConfig struct {
 	GooseVersion string `toml:"goose-version"`
 	// Path to directory with go.mod
-	GoPath string `toml:"go-path"`
+	GoPath string `toml:"go_path"`
 	// Packages to translate
-	PkgPatterns []string `toml:"pkg-patterns"`
+	PkgPatterns []string `toml:"packages"`
 	// Root output directory for Rocq code
 	RocqRoot string `toml:"rocq"`
 }
 
 func Parse(r io.Reader) (*GooseConfig, error) {
 	cfg := &GooseConfig{}
-	err := toml.NewDecoder(r).Decode(cfg)
+	decoder := toml.NewDecoder(r)
+	decoder.DisallowUnknownFields()
+	err := decoder.Decode(cfg)
 	if err != nil {
-		return nil, fmt.Errorf("error decoding config: %w", err)
+		return nil, fmt.Errorf("error parsing config: %w", err)
+	}
+	err = cfg.normalize()
+	if err != nil {
+		return nil, fmt.Errorf("error parsing config: %w", err)
 	}
 	return cfg, nil
 }
 
 func (c *GooseConfig) normalize() error {
 	if c.GooseVersion == "" {
-		c.GooseVersion = "latest"
+		c.GooseVersion = "new"
 	}
 	if c.GoPath == "" {
 		// Walk directory tree to find a unique go.mod file
