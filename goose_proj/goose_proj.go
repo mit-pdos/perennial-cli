@@ -12,7 +12,6 @@ import (
 // GooseConfig defines the format for the goose.toml file that defines a
 // translation config.
 type GooseConfig struct {
-	GooseVersion string `toml:"goose_version"`
 	// Path to directory with go.mod
 	GoPath string `toml:"go_path"`
 	// Packages to translate
@@ -37,9 +36,6 @@ func Parse(r io.Reader) (*GooseConfig, error) {
 }
 
 func (c *GooseConfig) normalize() error {
-	if c.GooseVersion == "" {
-		c.GooseVersion = "new"
-	}
 	if c.GoPath == "" {
 		// Walk directory tree to find a unique go.mod file
 		var goModPaths []string

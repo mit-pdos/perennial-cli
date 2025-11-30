@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func runGooseCmd(localPath string, cmdName string, version string, args []string) error {
+func runGooseCmd(localPath string, cmdName string, args []string) error {
 	if localPath != "" {
 		// Compile local goose binary to a temporary file
 		tmpFile, err := os.CreateTemp("", fmt.Sprintf("goose-%s-*", cmdName))
@@ -34,9 +34,7 @@ func runGooseCmd(localPath string, cmdName string, version string, args []string
 		cmd.Stderr = os.Stderr
 		return cmd.Run()
 	} else {
-		goArgs := []string{"run"}
-		goArgs = append(goArgs, fmt.Sprintf("github.com/goose-lang/goose/cmd/%s@%s", cmdName, version))
-		goArgs = append(goArgs, args...)
+		goArgs := append([]string{"tool", cmdName}, args...)
 		cmd := exec.Command("go", goArgs...)
 		cmd.Stderr = os.Stderr
 		return cmd.Run()
@@ -64,7 +62,7 @@ var gooseCmd = &cobra.Command{
 		var gooseErr, proofgenErr error
 		wg.Add(2)
 		go func() {
-			gooseErr = runGooseCmd(localPath, "goose", config.GooseVersion,
+			gooseErr = runGooseCmd(localPath, "goose",
 				append([]string{
 					"-out", path.Join(config.RocqRoot, "code"),
 					"-dir", configDir,
@@ -72,7 +70,7 @@ var gooseCmd = &cobra.Command{
 			wg.Done()
 		}()
 		go func() {
-			proofgenErr = runGooseCmd(localPath, "proofgen", config.GooseVersion,
+			proofgenErr = runGooseCmd(localPath, "proofgen",
 				append([]string{
 					"-out", path.Join(config.RocqRoot, "generatedproof"),
 					// directory with .v.toml files
