@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"sync"
 
 	gooseproj "github.com/mit-pdos/perennial-cli/goose_proj"
 	"github.com/spf13/cobra"
@@ -59,23 +60,30 @@ var gooseCmd = &cobra.Command{
 			return fmt.Errorf("error parsing config: %w", err)
 		}
 		configDir := path.Dir(configPath)
-		err = runGooseCmd(localPath, "goose", config.GooseVersion,
-			append([]string{
-				"-out", path.Join(config.RocqRoot, "code"),
-				"-dir", configDir,
-			}, config.PkgPatterns...))
-		if err != nil {
-			return err
-		}
-		err = runGooseCmd(localPath, "proofgen", config.GooseVersion,
-			append([]string{
-				"-out", path.Join(config.RocqRoot, "generatedproof"),
-				// directory with .v.toml files
-				"-configdir", path.Join(config.RocqRoot, "code"),
-				"-dir", configDir,
-			}, config.PkgPatterns...))
-		if err != nil {
-			return err
+		var wg sync.WaitGroup
+		var gooseErr, proofgenErr error
+		wg.Add(2)
+		go func() {
+			gooseErr = runGooseCmd(localPath, "goose", config.GooseVersion,
+				append([]string{
+					"-out", path.Join(config.RocqRoot, "code"),
+					"-dir", configDir,
+				}, config.PkgPatterns...))
+			wg.Done()
+		}()
+		go func() {
+			proofgenErr = runGooseCmd(localPath, "proofgen", config.GooseVersion,
+				append([]string{
+					"-out", path.Join(config.RocqRoot, "generatedproof"),
+					// directory with .v.toml files
+					"-configdir", path.Join(config.RocqRoot, "code"),
+					"-dir", configDir,
+				}, config.PkgPatterns...))
+			wg.Done()
+		}()
+		wg.Wait()
+		if gooseErr != nil || proofgenErr != nil {
+			return fmt.Errorf("error running goose")
 		}
 		return nil
 	},
