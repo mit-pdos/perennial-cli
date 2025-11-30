@@ -53,6 +53,8 @@ type fileToInstall struct {
 
 func getFilesToInstall(makeVars map[string]string, sources []string) []fileToInstall {
 	var files []fileToInstall
+	// NOTE: if rocq makefile is slow, this function can be run in parallel for
+	// all source files
 	for _, source := range sources {
 		// NOTE: not installing glob files
 		voFile := setExtension(source, ".vo")

@@ -8,6 +8,10 @@ import (
 	"strings"
 )
 
+// GetMakefileVars extracts variable values from a Makefile.
+//
+// It does this by running make (using a temporary Makefile to provide a rule to
+// just print values).
 func GetMakefileVars(makefilePath string, vars []string) map[string]string {
 	// Create a temporary Makefile with just the print-% rule
 	tmpFile, err := os.CreateTemp("", "makefile-*.mk")
@@ -37,7 +41,9 @@ func GetMakefileVars(makefilePath string, vars []string) map[string]string {
 	return result
 }
 
-func GetMakefileVarsForProjFile(projFile string) map[string]string {
+// getRocqVarsForProjFile gets the COQLIBS and COQLIBINSTALL variables that rocq
+// makefile generates for a given _RocqProject file.
+func getRocqVarsForProjFile(projFile string) map[string]string {
 	// 1. Run rocq makefile -f projFile -o <tmp Makefile.rocq>
 	tmpPath := ".tmp.Makefile.rocq"
 	defer os.Remove(tmpPath)
@@ -53,6 +59,11 @@ func GetMakefileVarsForProjFile(projFile string) map[string]string {
 	return GetMakefileVars(tmpPath, []string{"COQLIBS", "COQLIBINSTALL"})
 }
 
+// GetRocqVars extracts the COQLIBS and COQLIBINSTALL variables that rocq
+// makefile generates.
+//
+// It uses _RocqProject (falling back to _CoqProject) for the COQLIBS
+// configuration.
 func GetRocqVars() (map[string]string, error) {
 	projFile := "_RocqProject"
 	if _, err := os.Stat(projFile); os.IsNotExist(err) {
@@ -62,13 +73,14 @@ func GetRocqVars() (map[string]string, error) {
 			return nil, fmt.Errorf("neither _RocqProject nor _CoqProject file found")
 		}
 	}
-	return GetMakefileVarsForProjFile(projFile), nil
+	return getRocqVarsForProjFile(projFile), nil
 }
 
-// DestinationOf uses rocq makefile to identify where target (a vo file, for example) should be installed.
+// DestinationOf determines the installation path for a compiled file.
 //
-// Expects makeVars to have COQLIBS and COQLIBINSTALL, which are computed once
-// to avoid redundant calls to rocq makefile.
+// It uses "rocq makefile -destination-of" to identify where the target file
+// (typically a .vo file) should be installed, the same as the rocq makefile
+// `install` rule.
 func DestinationOf(makeVars map[string]string, target string) string {
 	// Build command arguments: rocq makefile <COQLIBS args> -destination-of <target>
 	args := []string{"makefile"}
