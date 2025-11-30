@@ -13,29 +13,36 @@ import (
 // translation config.
 type GooseConfig struct {
 	// Path to directory with go.mod
+	//
+	// If not set, search for a unique go.mod file.
 	GoPath string `toml:"go_path"`
-	// Packages to translate
+	// Packages to translate. Defaults to [./...].
 	PkgPatterns []string `toml:"packages"`
-	// Root output directory for Rocq code
+	// Root output directory for Rocq code. Defaults to "src".
 	RocqRoot string `toml:"rocq"`
 }
 
 func Parse(r io.Reader) (*GooseConfig, error) {
-	cfg := &GooseConfig{}
+	cfg := &GooseConfig{
+		PkgPatterns: []string{"./..."},
+		RocqRoot:    "src",
+	}
 	decoder := toml.NewDecoder(r)
 	decoder.DisallowUnknownFields()
 	err := decoder.Decode(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing config: %w", err)
 	}
-	err = cfg.normalize()
+	err = cfg.findGoPath()
 	if err != nil {
 		return nil, fmt.Errorf("error parsing config: %w", err)
 	}
 	return cfg, nil
 }
 
-func (c *GooseConfig) normalize() error {
+// findGoPath implements the default behavior of GoPath if not set: it searches
+// for a unique go.mod file and sets GoPath to the directory of that file.
+func (c *GooseConfig) findGoPath() error {
 	if c.GoPath == "" {
 		// Walk directory tree to find a unique go.mod file
 		var goModPaths []string
@@ -59,14 +66,6 @@ func (c *GooseConfig) normalize() error {
 			return fmt.Errorf("multiple go.mod files found: %v", goModPaths)
 		}
 		c.GoPath = goModPaths[0]
-	}
-
-	if c.RocqRoot == "" {
-		c.RocqRoot = "src"
-	}
-
-	if len(c.PkgPatterns) == 0 {
-		c.PkgPatterns = []string{"./..."}
 	}
 	return nil
 }

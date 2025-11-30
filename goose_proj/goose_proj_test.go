@@ -22,16 +22,6 @@ rocq = "src/program_proof"
 	assert.Equal(t, "src/program_proof", cfg.RocqRoot)
 }
 
-func TestNormalizeDefaults(t *testing.T) {
-	cfg := &GooseConfig{
-		GoPath: ".", // Set GoPath to avoid walkdir
-	}
-	err := cfg.normalize()
-	require.NoError(t, err)
-	assert.Equal(t, "src", cfg.RocqRoot)
-	assert.Equal(t, []string{"./..."}, cfg.PkgPatterns)
-}
-
 func TestParseWithDefaults(t *testing.T) {
 	// Minimal config with only go-path set
 	input := `
