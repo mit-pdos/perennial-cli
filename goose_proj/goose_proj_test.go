@@ -10,7 +10,7 @@ import (
 
 func TestParse(t *testing.T) {
 	input := `
-goose-version = "v0.1.0"
+goose_version = "v0.1.0"
 go_path = "./go"
 packages = ["github.com/example/pkg"]
 rocq = "src/program_proof"
