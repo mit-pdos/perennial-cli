@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 
 	"github.com/mit-pdos/perennial-cli/depgraph"
@@ -55,12 +56,12 @@ func getFilesToInstall(makeVars map[string]string, sources []string) []fileToIns
 	var files []fileToInstall
 	// NOTE: if rocq makefile is slow, this function can be run in parallel for
 	// all source files
-	for _, source := range sources {
+	for _, vFile := range sources {
 		// NOTE: not installing glob files
-		voFile := setExtension(source, ".vo")
-
-		dest := rocq_makefile.DestinationOf(makeVars, voFile)
-		files = append(files, fileToInstall{src: voFile, dest: dest})
+		voFile := setExtension(vFile, ".vo")
+		destDir := rocq_makefile.DestinationOf(makeVars, voFile)
+		files = append(files, fileToInstall{src: voFile, dest: path.Join(destDir, path.Base(voFile))})
+		files = append(files, fileToInstall{src: vFile, dest: path.Join(destDir, path.Base(vFile))})
 	}
 	return files
 }
@@ -131,10 +132,10 @@ func getInstallFiles(cmd *cobra.Command, args []string) ([]fileToInstall, error)
 	return getFilesToInstall(makeVars, sources), nil
 }
 
-// installCmd represents the install command
-var installCmd = &cobra.Command{
-	Use:   "install",
-	Short: "Install build outputs to COQLIB",
+// opamInstallCmd represents the opam install command
+var opamInstallCmd = &cobra.Command{
+	Use:   "install <FILES>",
+	Short: "Install build outputs to Rocq user-contrib",
 	Long: `Install .vo files, typically to an opam switch.
 
 Takes a list of either .v files or directories (which are searched recursively
@@ -157,10 +158,10 @@ Emulates the functionality of "make install" when using rocq makefile.
 	},
 }
 
-// uninstallCmd represents the uninstall command
-var uninstallCmd = &cobra.Command{
-	Use:   "uninstall",
-	Short: "Uninstall build outputs from COQLIB",
+// opamUninstallCmd represents the opam uninstall command
+var opamUninstallCmd = &cobra.Command{
+	Use:   "uninstall <FILES>",
+	Short: "Uninstall build outputs to Rocq user-contrib",
 	Long: `Uninstall .vo files from the opam switch.
 
 Takes a list of either .v files or directories (which are searched recursively
@@ -184,14 +185,14 @@ Emulates the functionality of "make uninstall" when using rocq makefile.
 }
 
 func init() {
-	rootCmd.AddCommand(installCmd)
-	rootCmd.AddCommand(uninstallCmd)
+	rootCmd.AddCommand(opamInstallCmd)
+	rootCmd.AddCommand(opamUninstallCmd)
 
-	installCmd.PersistentFlags().StringP("file", "f", ".rocqdeps.d", "Path to .rocqdeps.d file")
-	installCmd.PersistentFlags().BoolP("quiet", "q", false, "quiet mode (don't print list of installed files)")
-	installCmd.PersistentFlags().Bool("install-deps", true, "install dependencies of supplied files")
+	opamInstallCmd.PersistentFlags().StringP("file", "f", ".rocqdeps.d", "Path to .rocqdeps.d file")
+	opamInstallCmd.PersistentFlags().BoolP("quiet", "q", false, "quiet mode (don't print list of installed files)")
+	opamInstallCmd.PersistentFlags().Bool("install-deps", true, "install dependencies of supplied files")
 
-	uninstallCmd.PersistentFlags().StringP("file", "f", ".rocqdeps.d", "Path to .rocqdeps.d file")
-	uninstallCmd.PersistentFlags().BoolP("quiet", "q", false, "quiet mode (don't print list of uninstalled files)")
-	uninstallCmd.PersistentFlags().Bool("install-deps", true, "also uninstall dependencies")
+	opamUninstallCmd.PersistentFlags().StringP("file", "f", ".rocqdeps.d", "Path to .rocqdeps.d file")
+	opamUninstallCmd.PersistentFlags().BoolP("quiet", "q", false, "quiet mode (don't print list of uninstalled files)")
+	opamUninstallCmd.PersistentFlags().Bool("install-deps", true, "also uninstall dependencies")
 }

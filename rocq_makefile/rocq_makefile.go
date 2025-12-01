@@ -76,7 +76,8 @@ func GetRocqVars() (map[string]string, error) {
 	return getRocqVarsForProjFile(projFile), nil
 }
 
-// DestinationOf determines the installation path for a compiled file.
+// DestinationOf determines the installation path for a compiled file. Returns
+// the directory for the file `target`.
 //
 // It uses "rocq makefile -destination-of" to identify where the target file
 // (typically a .vo file) should be installed, the same as the rocq makefile
@@ -96,5 +97,5 @@ func DestinationOf(makeVars map[string]string, target string) string {
 		panic(fmt.Sprintf("failed to get destination of %s: %v", target, err))
 	}
 	installRoot := makeVars["COQLIBINSTALL"]
-	return path.Join(installRoot, strings.TrimSpace(string(output)), path.Base(target))
+	return path.Join(installRoot, strings.TrimSpace(string(output)))
 }
