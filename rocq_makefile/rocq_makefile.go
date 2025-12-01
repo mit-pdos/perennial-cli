@@ -49,7 +49,8 @@ func getRocqVarsForProjFile(projFile string) map[string]string {
 	defer os.Remove(tmpPath)
 	defer os.Remove(tmpPath + ".conf")
 	defer os.Remove("." + tmpPath + ".d")
-	cmd := exec.Command("rocq", "makefile", "-f", projFile, "-o", tmpPath)
+	// pass docroot to avoid a warning that is only relevant to make install-doc
+	cmd := exec.Command("rocq", "makefile", "-docroot", "Dummy", "-f", projFile, "-o", tmpPath)
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		panic(fmt.Sprintf("failed to run rocq makefile: %v", err))

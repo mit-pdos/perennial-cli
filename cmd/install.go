@@ -6,6 +6,9 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
+	"slices"
+	"strings"
 
 	"github.com/mit-pdos/perennial-cli/depgraph"
 	"github.com/mit-pdos/perennial-cli/rocq_makefile"
@@ -53,16 +56,47 @@ type fileToInstall struct {
 }
 
 func getFilesToInstall(makeVars map[string]string, sources []string) []fileToInstall {
-	var files []fileToInstall
-	// NOTE: if rocq makefile is slow, this function can be run in parallel for
-	// all source files
-	for _, vFile := range sources {
-		// NOTE: not installing glob files
-		voFile := setExtension(vFile, ".vo")
-		destDir := rocq_makefile.DestinationOf(makeVars, voFile)
-		files = append(files, fileToInstall{src: voFile, dest: path.Join(destDir, path.Base(voFile))})
-		files = append(files, fileToInstall{src: vFile, dest: path.Join(destDir, path.Base(vFile))})
+	// Create request and response channels
+	numWorkers := runtime.NumCPU()
+	requests := make(chan string, numWorkers)
+	responses := make(chan []fileToInstall, numWorkers)
+
+	// Start worker pool
+	for range numWorkers {
+		go func() {
+			for vFile := range requests {
+				// NOTE: not installing glob files
+				voFile := setExtension(vFile, ".vo")
+				destDir := rocq_makefile.DestinationOf(makeVars, voFile)
+
+				result := []fileToInstall{
+					{src: voFile, dest: path.Join(destDir, path.Base(voFile))},
+					{src: vFile, dest: path.Join(destDir, path.Base(vFile))},
+				}
+				responses <- result
+			}
+		}()
 	}
+
+	// Send all requests
+	go func() {
+		for _, vFile := range sources {
+			requests <- vFile
+		}
+		close(requests)
+	}()
+
+	// Collect all responses
+	var files []fileToInstall
+	for range len(sources) {
+		files = append(files, <-responses...)
+	}
+
+	// Sort by destination
+	slices.SortFunc(files, func(a, b fileToInstall) int {
+		return strings.Compare(a.dest, b.dest)
+	})
+
 	return files
 }
 
@@ -73,7 +107,7 @@ func installAll(quietMode bool, filesToInstall []fileToInstall) error {
 		}
 
 		if !quietMode {
-			fmt.Printf("INSTALL %s to %s\n", f.src, f.dest)
+			fmt.Printf("INSTALL %s\n", f.src)
 		}
 	}
 	return nil
@@ -93,7 +127,7 @@ func uninstallAll(quietMode bool, filesToInstall []fileToInstall) error {
 	return nil
 }
 
-func getInstallFiles(cmd *cobra.Command, args []string) ([]fileToInstall, error) {
+func getInstallFiles(cmd *cobra.Command, args []string) ([]fileToInstall, map[string]string, error) {
 	rocqdepName, _ := cmd.Flags().GetString("file")
 	installDeps, _ := cmd.Flags().GetBool("install-deps")
 	if len(args) == 0 {
@@ -104,14 +138,14 @@ func getInstallFiles(cmd *cobra.Command, args []string) ([]fileToInstall, error)
 	// Gather list of .v files
 	sources, err := gatherVFiles(args)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if installDeps {
 		// Parse dependency graph from .rocqdeps.d
 		deps, err := depgraph.ParseRocqdep(rocqdepName)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse deps %s: %w", rocqdepName, err)
+			return nil, nil, fmt.Errorf("failed to parse deps %s: %w", rocqdepName, err)
 		}
 
 		// Get all dependencies of the sources
@@ -119,21 +153,21 @@ func getInstallFiles(cmd *cobra.Command, args []string) ([]fileToInstall, error)
 	}
 
 	if len(sources) == 0 {
-		return nil, fmt.Errorf("no sources to install")
+		return nil, nil, fmt.Errorf("no sources to install")
 	}
 
 	// Get makefile vars from _RocqProject or _CoqProject
 	makeVars, err := rocq_makefile.GetRocqVars()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Install sources
-	return getFilesToInstall(makeVars, sources), nil
+	return getFilesToInstall(makeVars, sources), makeVars, nil
 }
 
-// opamInstallCmd represents the opam install command
-var opamInstallCmd = &cobra.Command{
+// installCmd represents the install command
+var installCmd = &cobra.Command{
 	Use:   "install <FILES>",
 	Short: "Install build outputs to Rocq user-contrib",
 	Long: `Install .vo files, typically to an opam switch.
@@ -146,20 +180,23 @@ Emulates the functionality of "make install" when using rocq makefile.
 	`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		quietMode, _ := cmd.Flags().GetBool("quiet")
-		filesToInstall, err := getInstallFiles(cmd, args)
+		filesToInstall, makeVars, err := getInstallFiles(cmd, args)
 		if err != nil {
 			return err
 		}
 		if err := installAll(quietMode, filesToInstall); err != nil {
 			return fmt.Errorf("error installing sources: %v", err)
 		}
+		if !quietMode {
+			fmt.Printf("installed to %s\n", path.Clean(makeVars["COQLIBINSTALL"]))
+		}
 
 		return nil
 	},
 }
 
-// opamUninstallCmd represents the opam uninstall command
-var opamUninstallCmd = &cobra.Command{
+// uninstallCmd represents the uninstall command
+var uninstallCmd = &cobra.Command{
 	Use:   "uninstall <FILES>",
 	Short: "Uninstall build outputs to Rocq user-contrib",
 	Long: `Uninstall .vo files from the opam switch.
@@ -172,7 +209,7 @@ Emulates the functionality of "make uninstall" when using rocq makefile.
 	`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		quietMode, _ := cmd.Flags().GetBool("quiet")
-		filesToInstall, err := getInstallFiles(cmd, args)
+		filesToInstall, _, err := getInstallFiles(cmd, args)
 		if err != nil {
 			return err
 		}
@@ -185,14 +222,14 @@ Emulates the functionality of "make uninstall" when using rocq makefile.
 }
 
 func init() {
-	rootCmd.AddCommand(opamInstallCmd)
-	rootCmd.AddCommand(opamUninstallCmd)
+	rootCmd.AddCommand(installCmd)
+	rootCmd.AddCommand(uninstallCmd)
 
-	opamInstallCmd.PersistentFlags().StringP("file", "f", ".rocqdeps.d", "Path to .rocqdeps.d file")
-	opamInstallCmd.PersistentFlags().BoolP("quiet", "q", false, "quiet mode (don't print list of installed files)")
-	opamInstallCmd.PersistentFlags().Bool("install-deps", true, "install dependencies of supplied files")
+	installCmd.PersistentFlags().StringP("file", "f", ".rocqdeps.d", "Path to .rocqdeps.d file")
+	installCmd.PersistentFlags().BoolP("quiet", "q", false, "quiet mode (don't print list of installed files)")
+	installCmd.PersistentFlags().Bool("install-deps", true, "install dependencies of supplied files")
 
-	opamUninstallCmd.PersistentFlags().StringP("file", "f", ".rocqdeps.d", "Path to .rocqdeps.d file")
-	opamUninstallCmd.PersistentFlags().BoolP("quiet", "q", false, "quiet mode (don't print list of uninstalled files)")
-	opamUninstallCmd.PersistentFlags().Bool("install-deps", true, "also uninstall dependencies")
+	uninstallCmd.PersistentFlags().StringP("file", "f", ".rocqdeps.d", "Path to .rocqdeps.d file")
+	uninstallCmd.PersistentFlags().BoolP("quiet", "q", false, "quiet mode (don't print list of uninstalled files)")
+	uninstallCmd.PersistentFlags().Bool("install-deps", true, "also uninstall dependencies")
 }

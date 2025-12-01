@@ -1,6 +1,6 @@
 module github.com/mit-pdos/perennial-cli
 
-go 1.25.4
+go 1.24.10
 
 require (
 	github.com/pb33f/ordered-map/v2 v2.3.0
