@@ -27,9 +27,7 @@ func Parse(r io.Reader) (*GooseConfig, error) {
 		PkgPatterns: []string{"./..."},
 		RocqRoot:    "src",
 	}
-	decoder := toml.NewDecoder(r)
-	decoder.DisallowUnknownFields()
-	err := decoder.Decode(cfg)
+	err := toml.NewDecoder(r).DisallowUnknownFields().Decode(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing config: %w", err)
 	}
