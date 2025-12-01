@@ -111,10 +111,6 @@ func (g *Graph) Deps(targets []string) []DepChain {
 		sources, _ := adjacency.Get(dep.Target)
 		adjacency.Set(dep.Target, append(sources, dep.Source))
 	}
-	// fmt.Printf("adjacency:\n")
-	// for target, sources := range adjacency.FromOldest() {
-	// 	fmt.Printf("%v -> %v\n", target, sources)
-	// }
 
 	var chains []DepChain
 	visited := make(map[string]bool)

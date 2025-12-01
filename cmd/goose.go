@@ -46,6 +46,7 @@ var gooseCmd = &cobra.Command{
 	Use:   "goose",
 	Short: "Translate code with goose",
 	Long:  `Run goose to translate a project configured with goose.toml.`,
+	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		configPath, _ := cmd.Flags().GetString("config")
 		localPath, _ := cmd.Flags().GetString("local")

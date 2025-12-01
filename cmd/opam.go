@@ -6,7 +6,7 @@ import (
 
 // opamCmd represents the opam command
 var opamCmd = &cobra.Command{
-	Use:   "opam",
+	Use:   "opam [command]",
 	Short: "Manage opam files",
 	Long: `Manage opam files.
 
