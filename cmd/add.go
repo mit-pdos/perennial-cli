@@ -20,16 +20,6 @@ func parseGitURL(url string) (string, string, error) {
 	return url, "", nil
 }
 
-// inferPackageName tries to infer the package name from a git URL
-func inferPackageName(url string) (string, error) {
-	// Get the last component of the path
-	parts := strings.Split(url, "/")
-	if len(parts) == 0 {
-		return "", fmt.Errorf("unable to infer package name from URL: %s", url)
-	}
-	return parts[len(parts)-1], nil
-}
-
 func doAdd(cmd *cobra.Command, args []string) error {
 	opamFileName, _ := cmd.Flags().GetString("file")
 	packageFlag, _ := cmd.Flags().GetString("package")
@@ -46,23 +36,24 @@ func doAdd(cmd *cobra.Command, args []string) error {
 		baseURL = "git+" + baseURL
 	}
 
+	// Get commit hash (either from URL or fetch latest)
+	if commit == "" {
+		fmt.Printf("fetching latest commit...\n")
+		commit, err = opam.GetLatestCommit(baseURL)
+		if err != nil {
+			return fmt.Errorf("failed to get latest commit: %w", err)
+		}
+	}
+
 	// Determine package name
 	var packageName string
 	if packageFlag != "" {
 		packageName = packageFlag
 	} else {
-		packageName, err = inferPackageName(baseURL)
+		fmt.Printf("finding opam package in repository...\n")
+		packageName, err = opam.FindOpamPackage(baseURL, commit)
 		if err != nil {
-			return err
-		}
-	}
-
-	// Get commit hash (either from URL or fetch latest)
-	if commit == "" {
-		fmt.Printf("fetching latest commit for %s...\n", packageName)
-		commit, err = opam.GetLatestCommit(baseURL)
-		if err != nil {
-			return fmt.Errorf("failed to get latest commit: %w", err)
+			return fmt.Errorf("failed to find opam package: %w", err)
 		}
 	}
 

@@ -84,6 +84,92 @@ func fetchOpamFile(gitURL, packageName, commit string) ([]byte, error) {
 	return data, nil
 }
 
+// FindOpamPackage tries to find the unique opam package in a repository at a specific commit.
+// Returns the package name (without .opam extension) if a unique opam file is found.
+// Uses the GitHub/GitLab API to list directory contents.
+func FindOpamPackage(gitURL, commit string) (string, error) {
+	url := strings.TrimPrefix(gitURL, "git+")
+	url = strings.TrimSuffix(url, ".git")
+
+	var apiURL string
+	if strings.Contains(url, "github.com") {
+		// GitHub API: https://api.github.com/repos/user/repo/contents?ref=commit
+		url = strings.Replace(url, "https://github.com/", "", 1)
+		apiURL = fmt.Sprintf("https://api.github.com/repos/%s/contents?ref=%s", url, commit)
+	} else if strings.Contains(url, "gitlab") {
+		// GitLab API: https://gitlab.com/api/v4/projects/user%2Frepo/repository/tree?ref=commit
+		// Extract the path after the domain
+		parts := strings.SplitN(url, "/", 4)
+		if len(parts) < 4 {
+			return "", fmt.Errorf("invalid GitLab URL format: %s", url)
+		}
+		domain := parts[0] + "//" + parts[2]
+		projectPath := strings.ReplaceAll(parts[3], "/", "%2F")
+		apiURL = fmt.Sprintf("%s/api/v4/projects/%s/repository/tree?ref=%s", domain, projectPath, commit)
+	} else {
+		return "", fmt.Errorf("unsupported git hosting service: %s", url)
+	}
+
+	resp, err := http.Get(apiURL)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch repository listing: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to fetch repository listing: status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read repository listing: %w", err)
+	}
+
+	// Look for .opam files in the response
+	// This is a simple string search rather than full JSON parsing
+	content := string(body)
+	var opamFiles []string
+
+	// Extract file names (works for both GitHub and GitLab JSON responses)
+	lines := strings.Split(content, "\n")
+	for _, line := range lines {
+		if strings.Contains(line, ".opam\"") {
+			// Extract the filename from JSON
+			// Look for patterns like "name": "package.opam" or "path":"package.opam"
+			if idx := strings.Index(line, "\"name\""); idx >= 0 {
+				line = line[idx:]
+			} else if idx := strings.Index(line, "\"path\""); idx >= 0 {
+				line = line[idx:]
+			}
+
+			// Extract the quoted filename
+			start := strings.Index(line, "\"") + 1
+			line = line[start:]
+			start = strings.Index(line, "\"") + 1
+			line = line[start:]
+			end := strings.Index(line, "\"")
+			if end > 0 {
+				filename := line[:end]
+				if strings.HasSuffix(filename, ".opam") && !strings.Contains(filename, "/") {
+					packageName := strings.TrimSuffix(filename, ".opam")
+					if !slices.Contains(opamFiles, packageName) {
+						opamFiles = append(opamFiles, packageName)
+					}
+				}
+			}
+		}
+	}
+
+	if len(opamFiles) == 0 {
+		return "", fmt.Errorf("no opam files found in repository")
+	}
+	if len(opamFiles) > 1 {
+		return "", fmt.Errorf("multiple opam files found in repository: %v", opamFiles)
+	}
+
+	return opamFiles[0], nil
+}
+
 // FetchDependencies fetches the (transitive) dependencies of a package.
 // It fetches the package's opam file at the specified git commit and returns
 // its pin-depends.
