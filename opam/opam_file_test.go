@@ -102,6 +102,35 @@ depends: [
 	assert.Contains(t, output, "pin-depends: [")
 }
 
+func TestParse_OneLineDepends(t *testing.T) {
+	opamWithOneLinePinDepends := `opam-version: "2.0"
+version: "dev"
+
+depends: []
+pin-depends: [
+]
+`
+	r := strings.NewReader(opamWithOneLinePinDepends)
+	_, err := Parse(r)
+	// TODO: should fix this by separating depends into two lines
+	require.Error(t, err, "depends: [] is not currently supported")
+}
+
+func TestParse_OneLinePinDepends(t *testing.T) {
+	opamWithOneLinePinDepends := `opam-version: "2.0"
+version: "dev"
+
+depends: [
+  "coq"
+]
+pin-depends: []
+`
+	r := strings.NewReader(opamWithOneLinePinDepends)
+	_, err := Parse(r)
+	// TODO: should fix this by separating pin-depends into two lines
+	require.Error(t, err, "pin-depends: [] is not currently supported")
+}
+
 func TestListPinDepends(t *testing.T) {
 	f := parseString(t, exampleOpam)
 
