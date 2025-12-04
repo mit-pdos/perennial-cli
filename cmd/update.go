@@ -4,19 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/mit-pdos/perennial-cli/opam"
 	"github.com/spf13/cobra"
 )
-
-func findUniqueOpamFile() (string, bool) {
-	files, err := filepath.Glob("*.opam")
-	if err != nil || len(files) != 1 {
-		return "", false
-	}
-	return files[0], true
-}
 
 type completedUpdate struct {
 	Package  string
@@ -101,5 +92,4 @@ func init() {
 	// Here you will define your flags and configuration settings.
 
 	updateCmd.PersistentFlags().StringP("package", "p", "", "Update only a specific package")
-	updateCmd.PersistentFlags().StringP("file", "f", "", "Opam file (if not provided, look in current directory)")
 }
