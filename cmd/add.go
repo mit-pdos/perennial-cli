@@ -34,7 +34,6 @@ func doAdd(cmd *cobra.Command, args []string) error {
 
 	// Get commit hash (either from URL or fetch latest)
 	if commit == "" {
-		fmt.Printf("fetching latest commit...\n")
 		commit, err = git.GetLatestCommit(baseURL)
 		if err != nil {
 			return fmt.Errorf("failed to get latest commit: %w", err)
@@ -47,10 +46,9 @@ func doAdd(cmd *cobra.Command, args []string) error {
 	if packageFlag != "" {
 		packageName = packageFlag
 	} else {
-		fmt.Printf("finding opam package in repository...\n")
 		packageName, err = opam.FindOpamPackage(baseURL, commit)
 		if err != nil {
-			return fmt.Errorf("failed to find opam package: %w", err)
+			return err
 		}
 	}
 
@@ -108,6 +106,18 @@ If the dependency already exists, it will be updated.
 
 `,
 	Args: cobra.ExactArgs(1),
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		opamFile, _ := cmd.Flags().GetString("file")
+		if opamFile == "" {
+			opamFile, ok := findUniqueOpamFile()
+			if !ok {
+				return fmt.Errorf("no opam file provided and no unique file found")
+			}
+			// Set the flag value so Run can use it
+			cmd.Flags().Set("file", opamFile)
+		}
+		return nil
+	},
 	RunE: doAdd,
 }
 

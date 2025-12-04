@@ -72,7 +72,19 @@ var updateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "Update pinned dependencies",
 	Long:  `Update dependencies in pin-depends to the latest commit hash.`,
-	RunE:  doUpdate,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		opamFile, _ := cmd.Flags().GetString("file")
+		if opamFile == "" {
+			opamFile, ok := findUniqueOpamFile()
+			if !ok {
+				return fmt.Errorf("no opam file provided and no unique file found")
+			}
+			// Set the flag value so Run can use it
+			cmd.Flags().Set("file", opamFile)
+		}
+		return nil
+	},
+	RunE: doUpdate,
 }
 
 func init() {

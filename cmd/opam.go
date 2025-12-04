@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
@@ -22,19 +21,6 @@ var opamCmd = &cobra.Command{
 	Long: `Manage opam files.
 
 Helps update dependencies and maintain indirect pin-depends.`,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		opamFile, _ := cmd.Flags().GetString("file")
-		if opamFile == "" {
-			var ok bool
-			opamFile, ok := findUniqueOpamFile()
-			if !ok {
-				return fmt.Errorf("no opam file provided and no unique file found")
-			}
-			// Set the flag value so Run can use it
-			cmd.Flags().Set("file", opamFile)
-		}
-		return nil
-	},
 }
 
 func init() {
