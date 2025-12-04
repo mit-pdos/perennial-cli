@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/mit-pdos/perennial-cli/git"
 	"github.com/mit-pdos/perennial-cli/opam"
 	"github.com/spf13/cobra"
 )
@@ -39,10 +40,11 @@ func doAdd(cmd *cobra.Command, args []string) error {
 	// Get commit hash (either from URL or fetch latest)
 	if commit == "" {
 		fmt.Printf("fetching latest commit...\n")
-		commit, err = opam.GetLatestCommit(baseURL)
+		commit, err = git.GetLatestCommit(baseURL)
 		if err != nil {
 			return fmt.Errorf("failed to get latest commit: %w", err)
 		}
+		commit = opam.AbbreviateHash(commit)
 	}
 
 	// Determine package name

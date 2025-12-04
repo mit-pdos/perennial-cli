@@ -3,24 +3,10 @@ package opam
 import (
 	"testing"
 
+	"github.com/mit-pdos/perennial-cli/git"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func TestGetLatestCommit(t *testing.T) {
-	// Test with a real repository (this is a live test)
-	commit, err := GetLatestCommit("git+https://github.com/mit-pdos/perennial")
-	require.NoError(t, err)
-
-	// Commit should be exactly HASH_ABBREV_LENGTH characters (normalized)
-	assert.Len(t, commit, HASH_ABBREV_LENGTH)
-
-	// Commit should be a valid hex string
-	for _, c := range commit {
-		assert.True(t, (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'),
-			"commit hash should only contain hex characters")
-	}
-}
 
 func TestFetchDependencies_KnownPackage(t *testing.T) {
 	// Test with a package known to not have pin-depends (shouldn't trigger an HTTP request)
@@ -37,13 +23,13 @@ func TestFetchDependencies_KnownPackage(t *testing.T) {
 func TestFetchDependencies(t *testing.T) {
 	// Test with perennial-example-proof repository (this is a live test)
 	// First, get the latest commit
-	commit, err := GetLatestCommit("git+https://github.com/tchajed/perennial-example-proof")
+	commit, err := git.GetLatestCommit("https://github.com/tchajed/perennial-example-proof")
 	require.NoError(t, err)
 
 	dep := PinDepend{
 		Package: "example-proof",
 		URL:     "git+https://github.com/tchajed/perennial-example-proof",
-		Commit:  commit,
+		Commit:  AbbreviateHash(commit),
 	}
 	deps, err := dep.FetchDependencies()
 	require.NoError(t, err)

@@ -13,11 +13,8 @@ import (
 //
 // Trims the commit hash to 10 characters.
 func GetLatestCommit(gitURL string) (string, error) {
-	// Strip git+ prefix if present
-	url := strings.TrimPrefix(gitURL, "git+")
-
 	// Use git ls-remote to get the latest commit on the default branch
-	cmd := exec.Command("git", "ls-remote", url, "HEAD")
+	cmd := exec.Command("git", "ls-remote", gitURL, "HEAD")
 	output, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("failed to run git ls-remote: %w", err)
@@ -155,4 +152,3 @@ func GetFile(gitURL, commit, path string) ([]byte, error) {
 
 	return data, nil
 }
-

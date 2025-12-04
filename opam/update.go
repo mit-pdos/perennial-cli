@@ -18,17 +18,6 @@ var packagesWithoutPinDepends = map[string]bool{
 	"iris-named-props":  true,
 }
 
-// GetLatestCommit returns the latest commit hash from a git URL.
-//
-// Trims the commit hash to HASH_ABBREV_LENGTH characters.
-func GetLatestCommit(gitURL string) (string, error) {
-	commit, err := git.GetLatestCommit(gitURL)
-	if err != nil {
-		return "", err
-	}
-	return abbreviateHash(commit), nil
-}
-
 // fetchOpamFile fetches an opam file from a URL at a specific commit.
 // The URL should be a git repository URL (with or without git+ prefix).
 func fetchOpamFile(gitURL, packageName, commit string) ([]byte, error) {

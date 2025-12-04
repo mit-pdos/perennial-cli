@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/mit-pdos/perennial-cli/git"
 	"github.com/mit-pdos/perennial-cli/opam"
 	"github.com/spf13/cobra"
 )
@@ -27,10 +28,11 @@ func doUpdate(cmd *cobra.Command, args []string) error {
 		if packageFlag != "" && packageFlag != dep.Package {
 			continue
 		}
-		hash, err := opam.GetLatestCommit(dep.URL)
+		hash, err := git.GetLatestCommit(dep.URL)
 		if err != nil {
 			return err
 		}
+		hash = opam.AbbreviateHash(hash)
 		if hash != dep.Commit {
 			oldCommit := dep.Commit
 			dep.Commit = hash

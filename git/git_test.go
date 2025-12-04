@@ -9,7 +9,7 @@ import (
 
 func TestGetLatestCommit(t *testing.T) {
 	// Test with a real repository (this is a live test)
-	commit, err := GetLatestCommit("git+https://github.com/mit-pdos/perennial")
+	commit, err := GetLatestCommit("https://github.com/mit-pdos/perennial")
 	require.NoError(t, err)
 
 	// Commit should be 10 characters (our truncation)

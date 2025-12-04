@@ -13,7 +13,7 @@ import (
 const HASH_ABBREV_LENGTH = 10
 
 // Abbreviate commit hash
-func abbreviateHash(commit string) string {
+func AbbreviateHash(commit string) string {
 	if len(commit) > HASH_ABBREV_LENGTH {
 		return commit[:HASH_ABBREV_LENGTH]
 	}
@@ -47,7 +47,7 @@ func (dep *PinDepend) Normalize() *PinDepend {
 	if strings.HasPrefix("https://", dep.URL) {
 		dep.URL = "git+" + dep.URL
 	}
-	dep.Commit = abbreviateHash(dep.Commit)
+	dep.Commit = AbbreviateHash(dep.Commit)
 	return dep
 }
 
@@ -238,7 +238,7 @@ func parsePinDependLine(line string) *PinDepend {
 func (dep PinDepend) String() string {
 	fullURL := dep.URL
 	if dep.Commit != "" {
-		fullURL = dep.URL + "#" + abbreviateHash(dep.Commit)
+		fullURL = dep.URL + "#" + AbbreviateHash(dep.Commit)
 	}
 	fullPackageName := dep.Package + ".dev"
 	// Use spacing similar to the example: package name padded with spaces between quotes
