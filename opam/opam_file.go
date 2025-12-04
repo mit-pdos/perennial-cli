@@ -29,6 +29,8 @@ var (
 	endIndirectRe   = regexp.MustCompile(`^\s*##\s*end\b.*$`)
 	// Matches: ["package.name" "git+https://...#commit"]
 	pinDependLineRe = regexp.MustCompile(`^\s*\[\s*"([^"]+)"\s+"([^"]+)"\s*\]`)
+	// Matches dependency lines: "package-name" or "package-name" { version-constraint }
+	dependLineRe = regexp.MustCompile(`^\s*"([^"]+)"`)
 )
 
 type PinDepend struct {
@@ -387,5 +389,47 @@ func (f *OpamFile) SetIndirect(indirects []PinDepend) {
 
 		f.Lines = slices.Insert(f.Lines, insertPos, indirectLines...)
 	}
+	f.update()
+}
+
+// GetDependencies returns all dependencies listed in the depends block,
+// ignoring version constraints. Returns just the package names.
+func (f *OpamFile) GetDependencies() []string {
+	if f.depends.empty() {
+		return nil
+	}
+
+	var deps []string
+	for i := range f.depends.innerLineNums() {
+		line := f.Lines[i]
+		matches := dependLineRe.FindStringSubmatch(line)
+		if matches != nil {
+			deps = append(deps, matches[1])
+		}
+	}
+
+	return deps
+}
+
+// AddDependency adds a new dependency to the depends block.
+// If the dependency already exists, it does nothing.
+// The dependency is added without version constraints.
+func (f *OpamFile) AddDependency(packageName string) {
+	if f.depends.empty() {
+		return
+	}
+
+	// Check if dependency already exists
+	existingDeps := f.GetDependencies()
+	for _, dep := range existingDeps {
+		if dep == packageName {
+			return // Already exists, nothing to do
+		}
+	}
+
+	// Add the new dependency after the opening "depends: [" line
+	newLine := fmt.Sprintf("  \"%s\"", packageName)
+	f.Lines = slices.Insert(f.Lines, f.depends.startLine+1, newLine)
+
 	f.update()
 }

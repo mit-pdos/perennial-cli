@@ -37,10 +37,16 @@ build: [make "-j%{jobs}%"]
 install: ["./etc/install.sh"]
 `
 
-func TestParse(t *testing.T) {
-	r := strings.NewReader(exampleOpam)
+// parseString is a helper function to parse an opam file from a string
+func parseString(t *testing.T, content string) *OpamFile {
+	r := strings.NewReader(content)
 	f, err := Parse(r)
 	require.NoError(t, err)
+	return f
+}
+
+func TestParse(t *testing.T) {
+	f := parseString(t, exampleOpam)
 
 	// Check depends region
 	assert.False(t, f.depends.empty(), "depends region not found")
@@ -63,9 +69,7 @@ func TestParse_AddMissingBlocks_Empty(t *testing.T) {
 	minimalOpam := `opam-version: "2.0"
 version: "dev"
 `
-	r := strings.NewReader(minimalOpam)
-	f, err := Parse(r)
-	require.NoError(t, err)
+	f := parseString(t, minimalOpam)
 
 	// Both depends and pin-depends should have been added
 	assert.False(t, f.depends.empty(), "depends block should be added")
@@ -86,9 +90,7 @@ depends: [
   "coq"
 ]
 `
-	r := strings.NewReader(opamWithDepends)
-	f, err := Parse(r)
-	require.NoError(t, err)
+	f := parseString(t, opamWithDepends)
 
 	// depends should exist, pin-depends should have been added
 	assert.False(t, f.depends.empty(), "depends block should exist")
@@ -101,9 +103,7 @@ depends: [
 }
 
 func TestListPinDepends(t *testing.T) {
-	r := strings.NewReader(exampleOpam)
-	f, err := Parse(r)
-	require.NoError(t, err)
+	f := parseString(t, exampleOpam)
 
 	deps := f.GetPinDepends()
 	// Should only return direct dependencies (excluding indirect section)
@@ -116,9 +116,7 @@ func TestListPinDepends(t *testing.T) {
 }
 
 func TestGetIndirect(t *testing.T) {
-	r := strings.NewReader(exampleOpam)
-	f, err := Parse(r)
-	require.NoError(t, err)
+	f := parseString(t, exampleOpam)
 
 	indirect := f.GetIndirect()
 	require.Len(t, indirect, 3)
@@ -130,9 +128,7 @@ func TestGetIndirect(t *testing.T) {
 }
 
 func TestAddPinDepend_Update(t *testing.T) {
-	r := strings.NewReader(exampleOpam)
-	f, err := Parse(r)
-	require.NoError(t, err)
+	f := parseString(t, exampleOpam)
 
 	// Update existing dependency
 	f.AddPinDepend(PinDepend{
@@ -153,9 +149,7 @@ func TestAddPinDepend_Update(t *testing.T) {
 }
 
 func TestAddPinDepend_Add(t *testing.T) {
-	r := strings.NewReader(exampleOpam)
-	f, err := Parse(r)
-	require.NoError(t, err)
+	f := parseString(t, exampleOpam)
 
 	// Add new dependency
 	f.AddPinDepend(PinDepend{
@@ -177,9 +171,7 @@ func TestAddPinDepend_Add(t *testing.T) {
 }
 
 func TestSetIndirect(t *testing.T) {
-	r := strings.NewReader(exampleOpam)
-	f, err := Parse(r)
-	require.NoError(t, err)
+	f := parseString(t, exampleOpam)
 
 	// Replace indirect dependencies
 	newIndirect := []PinDepend{
@@ -196,9 +188,7 @@ func TestSetIndirect(t *testing.T) {
 }
 
 func TestString(t *testing.T) {
-	r := strings.NewReader(exampleOpam)
-	f, err := Parse(r)
-	require.NoError(t, err)
+	f := parseString(t, exampleOpam)
 
 	output := f.String()
 	assert.Equal(t, exampleOpam, output)
@@ -367,4 +357,73 @@ func TestFormatPinDependLine(t *testing.T) {
 			assert.Equal(t, tt.want, tt.dep.String())
 		})
 	}
+}
+
+func TestGetDependencies(t *testing.T) {
+	f := parseString(t, exampleOpam)
+
+	deps := f.GetDependencies()
+	require.Len(t, deps, 2)
+
+	assert.Equal(t, "perennial", deps[0])
+	assert.Equal(t, "coq-record-update", deps[1])
+}
+
+func TestGetDependencies_Empty(t *testing.T) {
+	// Test with minimal opam file with empty depends block
+	minimalOpam := `opam-version: "2.0"
+version: "dev"
+`
+	f := parseString(t, minimalOpam)
+
+	deps := f.GetDependencies()
+	assert.Empty(t, deps)
+}
+
+func TestAddDependency(t *testing.T) {
+	f := parseString(t, exampleOpam)
+
+	// Add a new dependency
+	f.AddDependency("new-package")
+
+	deps := f.GetDependencies()
+	require.Len(t, deps, 3)
+
+	// New package should be first (added after the opening bracket)
+	assert.Equal(t, "new-package", deps[0])
+	assert.Equal(t, "perennial", deps[1])
+	assert.Equal(t, "coq-record-update", deps[2])
+}
+
+func TestAddDependency_Duplicate(t *testing.T) {
+	f := parseString(t, exampleOpam)
+
+	// Try to add an existing dependency
+	f.AddDependency("perennial")
+
+	deps := f.GetDependencies()
+	// Should still have only 2 dependencies
+	require.Len(t, deps, 2)
+
+	assert.Equal(t, "perennial", deps[0])
+	assert.Equal(t, "coq-record-update", deps[1])
+}
+
+func TestAddDependency_Multiple(t *testing.T) {
+	f := parseString(t, exampleOpam)
+
+	// Add multiple new dependencies
+	f.AddDependency("package-a")
+	f.AddDependency("package-b")
+	f.AddDependency("package-c")
+
+	deps := f.GetDependencies()
+	require.Len(t, deps, 5)
+
+	// New packages are added in reverse order (each inserted after the opening bracket)
+	assert.Equal(t, "package-c", deps[0])
+	assert.Equal(t, "package-b", deps[1])
+	assert.Equal(t, "package-a", deps[2])
+	assert.Equal(t, "perennial", deps[3])
+	assert.Equal(t, "coq-record-update", deps[4])
 }
