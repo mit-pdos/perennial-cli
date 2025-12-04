@@ -1,0 +1,22 @@
+opam-version: "2.0"
+license: "MIT"
+maintainer: "{{.Author}}"
+authors: "{{.Author}}"
+homepage: "{{.Url}}"
+bug-reports: "{{.Url}}/issues"
+dev-repo: "git+{{.Url}}.git"
+version: "dev"
+synopsis: "{{.Synopsis}}"
+
+depends: [
+  "perennial"
+]
+
+pin-depends: [
+]
+
+build: [make "GOCACHE=_build/.gocache" "-j%{jobs}%"]
+install: ["go" "tool" "perennial-cli" "install"]
+build-env: [
+  [GOCACHE = "%{build}%/_build/.gocache"]
+]
