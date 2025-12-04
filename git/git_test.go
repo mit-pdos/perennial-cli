@@ -21,3 +21,22 @@ func TestGetLatestCommit(t *testing.T) {
 			"commit hash should only contain hex characters")
 	}
 }
+
+func TestListFiles(t *testing.T) {
+	// Test with perennial repository (this is a live test)
+	// List files at the root
+	files, err := ListFiles("https://github.com/mit-pdos/perennial", "eb8dbfceb7a15fddf623bf526a70a694918987b2")
+	require.NoError(t, err)
+
+	// Should have some files
+	assert.Greater(t, len(files), 0, "repository should have files at root")
+
+	// Should have perennial.opam file
+	assert.Contains(t, files, "perennial.opam", "should find perennial.opam file")
+
+	// Files should not contain subdirectories (no slashes)
+	for _, file := range files {
+		assert.NotContains(t, file, "/", "file should not contain slashes (no subdirectories)")
+		assert.NotEmpty(t, file, "file name should not be empty")
+	}
+}

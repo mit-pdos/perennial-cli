@@ -32,11 +32,6 @@ func doAdd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Ensure URL has git+ prefix
-	if !strings.HasPrefix(baseURL, "git+") {
-		baseURL = "git+" + baseURL
-	}
-
 	// Get commit hash (either from URL or fetch latest)
 	if commit == "" {
 		fmt.Printf("fetching latest commit...\n")

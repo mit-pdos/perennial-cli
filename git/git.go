@@ -1,11 +1,11 @@
 package git
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os/exec"
-	"slices"
 	"strings"
 )
 
@@ -40,24 +40,18 @@ func ListFiles(gitURL, commit string) ([]string, error) {
 	url := strings.TrimPrefix(gitURL, "git+")
 	url = strings.TrimSuffix(url, ".git")
 
-	var apiURL string
 	if strings.Contains(url, "github.com") {
-		// GitHub API: https://api.github.com/repos/user/repo/contents?ref=commit
-		url = strings.Replace(url, "https://github.com/", "", 1)
-		apiURL = fmt.Sprintf("https://api.github.com/repos/%s/contents?ref=%s", url, commit)
+		return listFilesGitHub(url, commit)
 	} else if strings.Contains(url, "gitlab") {
-		// GitLab API: https://gitlab.com/api/v4/projects/user%2Frepo/repository/tree?ref=commit
-		// Extract the path after the domain
-		parts := strings.SplitN(url, "/", 4)
-		if len(parts) < 4 {
-			return nil, fmt.Errorf("invalid GitLab URL format: %s", url)
-		}
-		domain := parts[0] + "//" + parts[2]
-		projectPath := strings.ReplaceAll(parts[3], "/", "%2F")
-		apiURL = fmt.Sprintf("%s/api/v4/projects/%s/repository/tree?ref=%s", domain, projectPath, commit)
-	} else {
-		return nil, fmt.Errorf("unsupported git hosting service: %s", url)
+		return listFilesGitLab(url, commit)
 	}
+	return nil, fmt.Errorf("unsupported git hosting service: %s", url)
+}
+
+func listFilesGitHub(url, commit string) ([]string, error) {
+	// GitHub API: https://api.github.com/repos/user/repo/contents?ref=commit
+	url = strings.Replace(url, "https://github.com/", "", 1)
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/contents?ref=%s", url, commit)
 
 	resp, err := http.Get(apiURL)
 	if err != nil {
@@ -69,48 +63,64 @@ func ListFiles(gitURL, commit string) ([]string, error) {
 		return nil, fmt.Errorf("failed to fetch repository listing: status %d", resp.StatusCode)
 	}
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read repository listing: %w", err)
+	// Parse GitHub API response (array of objects with "name", "type", etc.)
+	var entries []struct {
+		Name string `json:"name"`
+		Type string `json:"type"`
+		Path string `json:"path"`
 	}
 
-	// Look for files in the response
-	// This is a simple string search rather than full JSON parsing
-	content := string(body)
+	if err := json.NewDecoder(resp.Body).Decode(&entries); err != nil {
+		return nil, fmt.Errorf("failed to parse GitHub API response: %w", err)
+	}
+
 	var files []string
+	for _, entry := range entries {
+		// Only include files (not directories) at the root
+		if entry.Type == "file" && !strings.Contains(entry.Path, "/") {
+			files = append(files, entry.Name)
+		}
+	}
 
-	// Extract file names (works for both GitHub and GitLab JSON responses)
-	lines := strings.Split(content, "\n")
-	for _, line := range lines {
-		// Look for patterns like "name": "filename" or "path":"filename"
-		if idx := strings.Index(line, "\"name\""); idx >= 0 {
-			line = line[idx:]
-		} else if idx := strings.Index(line, "\"path\""); idx >= 0 {
-			line = line[idx:]
-		} else {
-			continue
-		}
+	return files, nil
+}
 
-		// Extract the quoted filename
-		start := strings.Index(line, "\"") + 1
-		if start < 1 {
-			continue
-		}
-		line = line[start:]
-		start = strings.Index(line, "\"") + 1
-		if start < 1 {
-			continue
-		}
-		line = line[start:]
-		end := strings.Index(line, "\"")
-		if end > 0 {
-			filename := line[:end]
-			// Only include files at the root (no subdirectories)
-			if !strings.Contains(filename, "/") && filename != "" {
-				if !slices.Contains(files, filename) {
-					files = append(files, filename)
-				}
-			}
+func listFilesGitLab(url, commit string) ([]string, error) {
+	// GitLab API: https://gitlab.com/api/v4/projects/user%2Frepo/repository/tree?ref=commit
+	parts := strings.SplitN(url, "/", 4)
+	if len(parts) < 4 {
+		return nil, fmt.Errorf("invalid GitLab URL format: %s", url)
+	}
+	domain := parts[0] + "//" + parts[2]
+	projectPath := strings.ReplaceAll(parts[3], "/", "%2F")
+	apiURL := fmt.Sprintf("%s/api/v4/projects/%s/repository/tree?ref=%s", domain, projectPath, commit)
+
+	resp, err := http.Get(apiURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch repository listing: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to fetch repository listing: status %d", resp.StatusCode)
+	}
+
+	// Parse GitLab API response (array of objects with "name", "type", "path")
+	var entries []struct {
+		Name string `json:"name"`
+		Type string `json:"type"`
+		Path string `json:"path"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&entries); err != nil {
+		return nil, fmt.Errorf("failed to parse GitLab API response: %w", err)
+	}
+
+	var files []string
+	for _, entry := range entries {
+		// Only include files (blobs) at the root
+		if entry.Type == "blob" && !strings.Contains(entry.Path, "/") {
+			files = append(files, entry.Name)
 		}
 	}
 
