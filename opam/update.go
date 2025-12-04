@@ -3,8 +3,6 @@ package opam
 import (
 	"bytes"
 	"fmt"
-	"io"
-	"net/http"
 	"slices"
 	"strings"
 
@@ -34,27 +32,11 @@ func GetLatestCommit(gitURL string) (string, error) {
 // fetchOpamFile fetches an opam file from a URL at a specific commit.
 // The URL should be a git repository URL (with or without git+ prefix).
 func fetchOpamFile(gitURL, packageName, commit string) ([]byte, error) {
-	filename := packageName + ".opam"
-	rawURL, err := git.GetRawFileURL(gitURL, commit, filename)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := http.Get(rawURL)
+	path := packageName + ".opam"
+	data, err := git.GetFile(gitURL, commit, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch opam file: %w", err)
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to fetch opam file: status %d", resp.StatusCode)
-	}
-
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read opam file: %w", err)
-	}
-
 	return data, nil
 }
 

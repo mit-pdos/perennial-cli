@@ -120,24 +120,39 @@ func ListFiles(gitURL, commit string) ([]string, error) {
 	return files, nil
 }
 
-// GetRawFileURL constructs a URL to fetch a raw file from a git repository at a specific commit.
+// GetFile fetches a file from a git repository at a specific commit.
 // Works with GitHub and GitLab repositories.
-func GetRawFileURL(gitURL, commit, filename string) (string, error) {
+func GetFile(gitURL, commit, path string) ([]byte, error) {
 	url := strings.TrimPrefix(gitURL, "git+")
 	url = strings.TrimSuffix(url, ".git")
 
 	var rawURL string
 	if strings.Contains(url, "github.com") {
-		// GitHub: https://github.com/user/repo -> https://raw.githubusercontent.com/user/repo/commit/filename
+		// GitHub: https://github.com/user/repo -> https://raw.githubusercontent.com/user/repo/commit/path
 		url = strings.Replace(url, "github.com", "raw.githubusercontent.com", 1)
-		rawURL = fmt.Sprintf("%s/%s/%s", url, commit, filename)
+		rawURL = fmt.Sprintf("%s/%s/%s", url, commit, path)
 	} else if strings.Contains(url, "gitlab") {
-		// GitLab: https://gitlab.com/user/repo -> https://gitlab.com/user/repo/-/raw/commit/filename
-		rawURL = fmt.Sprintf("%s/-/raw/%s/%s", url, commit, filename)
+		// GitLab: https://gitlab.com/user/repo -> https://gitlab.com/user/repo/-/raw/commit/path
+		rawURL = fmt.Sprintf("%s/-/raw/%s/%s", url, commit, path)
 	} else {
-		return "", fmt.Errorf("unsupported git hosting service: %s", url)
+		return nil, fmt.Errorf("unsupported git hosting service: %s", url)
 	}
 
-	return rawURL, nil
+	resp, err := http.Get(rawURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch file: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to fetch file: status %d", resp.StatusCode)
+	}
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file: %w", err)
+	}
+
+	return data, nil
 }
 
