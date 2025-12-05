@@ -65,8 +65,6 @@ func createGoMod(dir string, url string) error {
 		fmt.Printf("go mod init %s\n", modName)
 		goModCmd := exec.Command("go", "mod", "init", modName)
 		goModCmd.Dir = dir
-		goModCmd.Stdout = nil
-		goModCmd.Stderr = os.Stderr
 		// go mod init outputs info messages on stderr; suppress those but print
 		// if the command fails
 		if output, err := goModCmd.CombinedOutput(); err != nil {
