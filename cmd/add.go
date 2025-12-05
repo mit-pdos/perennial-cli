@@ -75,18 +75,22 @@ func doAdd(cmd *cobra.Command, args []string) error {
 	opamFile.AddPinDepend(dep)
 
 	// Update indirect dependencies
-	err = opamFile.UpdateIndirectDependencies()
+	_, err = opamFile.UpdateIndirectDependencies()
 	if err != nil {
 		return fmt.Errorf("failed to update indirect dependencies: %w", err)
 	}
 
 	// Write the updated opam file
 	newContents := opamFile.String()
+	if newContents == string(contents) {
+		fmt.Printf("already up-to-date\n")
+		return nil
+	}
 	if err := os.WriteFile(opamFileName, []byte(newContents), 0644); err != nil {
 		return err
 	}
-
 	fmt.Printf("added %s (pinned to %s)\n", packageName, commit)
+
 	return nil
 }
 

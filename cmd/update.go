@@ -44,7 +44,7 @@ func doUpdate(cmd *cobra.Command, args []string) error {
 			})
 		}
 	}
-	err = opamFile.UpdateIndirectDependencies()
+	_, err = opamFile.UpdateIndirectDependencies()
 	if err != nil {
 		return err
 	}

@@ -81,13 +81,17 @@ func (dep *PinDepend) FetchDependencies() ([]PinDepend, error) {
 	return deps, nil
 }
 
-func (f *OpamFile) UpdateIndirectDependencies() error {
+// UpdateIndirectDependencies updates the indirect dependencies of an opam file.
+//
+// It returns true if the indirect dependencies were updated, false otherwise.
+func (f *OpamFile) UpdateIndirectDependencies() (bool, error) {
 	seen := make(map[string]bool)
+	oldIndirects := f.GetIndirect()
 	indirects := []PinDepend{}
 	for _, dep := range f.GetPinDepends() {
 		newIndirects, err := dep.FetchDependencies()
 		if err != nil {
-			return err
+			return false, err
 		}
 		for _, newDep := range newIndirects {
 			if !seen[newDep.Package] {
@@ -105,5 +109,5 @@ func (f *OpamFile) UpdateIndirectDependencies() error {
 		return 0
 	})
 	f.SetIndirect(indirects)
-	return nil
+	return !slices.Equal(oldIndirects, indirects), nil
 }

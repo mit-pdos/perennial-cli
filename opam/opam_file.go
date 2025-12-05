@@ -421,10 +421,8 @@ func (f *OpamFile) AddDependency(packageName string) {
 
 	// Check if dependency already exists
 	existingDeps := f.GetDependencies()
-	for _, dep := range existingDeps {
-		if dep == packageName {
-			return // Already exists, nothing to do
-		}
+	if slices.Contains(existingDeps, packageName) {
+		return // Already exists, nothing to do
 	}
 
 	// Add the new dependency after the opening "depends: [" line
