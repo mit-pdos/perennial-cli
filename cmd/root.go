@@ -8,9 +8,10 @@ import (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "perennial-cli [command]",
-	Short: "CLI to manage perennial verification projects",
-	Long:  `perennial-cli manages verification projects based on Perennial.`,
+	Use:          "perennial-cli [command]",
+	Short:        "CLI to manage perennial verification projects",
+	Long:         `perennial-cli manages verification projects based on Perennial.`,
+	SilenceUsage: true,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
