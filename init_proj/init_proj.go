@@ -137,7 +137,7 @@ func New(url, projectName, dir string) error {
 			outputPath:   opamFileName,
 		},
 		{
-			templatePath: "init_template/Makefile",
+			templatePath: "init_template/Makefile.tmpl",
 			outputPath:   "Makefile",
 		},
 		{
