@@ -35,7 +35,7 @@ var (
 
 type PinDepend struct {
 	Package string // package name (e.g., rocq-iris)
-	URL     string // URL (with git+https protocol)
+	URL     string // URL (always has git+https protocol)
 	Commit  string // commit hash
 }
 
@@ -49,6 +49,10 @@ func (dep *PinDepend) Normalize() *PinDepend {
 	}
 	dep.Commit = AbbreviateHash(dep.Commit)
 	return dep
+}
+
+func (dep *PinDepend) BaseUrl() string {
+	return strings.TrimPrefix(dep.URL, "git+")
 }
 
 type region struct {

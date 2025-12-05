@@ -28,7 +28,7 @@ func doUpdate(cmd *cobra.Command, args []string) error {
 		if packageFlag != "" && packageFlag != dep.Package {
 			continue
 		}
-		hash, err := git.GetLatestCommit(dep.URL)
+		hash, err := git.GetLatestCommit(dep.BaseUrl())
 		if err != nil {
 			return err
 		}
