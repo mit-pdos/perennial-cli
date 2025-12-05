@@ -6,13 +6,17 @@ Tool to manage perennial-based verification projects.
 
 Run `perennial-cli help` for more detailed help.
 
+### Create a new project
+
+Run `go run github.com/mit-pdos/perennial-cli@latest init <url>` to create a brand-new perennial project, with a Makefile and goose.toml setup. After setup, you can run the CLI with `go tool perennial-cli` using the newly-created `go.mod` file.
+
 ### Manage opam files
 
 Perennial projects use an opam file to specify their dependencies, notably the version of perennial. These dependencies are specified using a git hash using [opam's pin-depends feature](https://opam.ocaml.org/doc/Manual.html#opamfield-pin-depends). While pin-depends allows depending on specific commits and removes the need for a custom opam repository, it has some quirks: `opam upgrade` does not update pin-depends, and opam does not install transitive pin-depends for a dependency.
 
-We handle this by proving `perennial-cli opam update`, which can (a) update the pin-depends field to the latest commit, and (b) automatically maintain all indirect dependencies.
+We handle this by providing `perennial-cli opam update`, which can (a) update the pin-depends field to the latest commit, and (b) automatically maintain all indirect dependencies.
 
-An easy feature to add would be `perennial-cli opam add` to add a dependency by URL.
+To add a new dependency, use `perennial-cli opam add`. Takes a URL and pins the dependency to the current commit.
 
 ### Run goose
 
