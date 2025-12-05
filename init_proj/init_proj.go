@@ -62,12 +62,15 @@ func createGoMod(dir string, url string) error {
 	goModPath := filepath.Join(dir, "go.mod")
 	if _, err := os.Stat(goModPath); os.IsNotExist(err) {
 		modName := strings.TrimPrefix(url, "https://")
-		// fmt.Printf("go mod init %s\n", modName)
+		fmt.Printf("go mod init %s\n", modName)
 		goModCmd := exec.Command("go", "mod", "init", modName)
 		goModCmd.Dir = dir
 		goModCmd.Stdout = nil
 		goModCmd.Stderr = os.Stderr
-		if err := goModCmd.Run(); err != nil {
+		// go mod init outputs info messages on stderr; suppress those but print
+		// if the command fails
+		if output, err := goModCmd.CombinedOutput(); err != nil {
+			fmt.Fprintf(os.Stderr, "%s", output)
 			return fmt.Errorf("go mod init failed: %w", err)
 		}
 	}

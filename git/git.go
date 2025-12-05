@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -13,8 +14,8 @@ import (
 //
 // Trims the commit hash to 10 characters.
 func GetLatestCommit(gitURL string) (string, error) {
-	// Use git ls-remote to get the latest commit on the default branch
 	cmd := exec.Command("git", "ls-remote", gitURL, "HEAD")
+	cmd.Stderr = os.Stderr
 	output, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("failed to run git ls-remote: %w", err)
