@@ -1,5 +1,7 @@
 # perennial-cli
 
+[![CI](https://github.com/mit-pdos/perennial-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/mit-pdos/perennial-cli/actions/workflows/ci.yml)
+
 Tool to manage perennial-based verification projects.
 
 ## Features
