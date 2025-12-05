@@ -10,6 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
+
+	"github.com/mit-pdos/perennial-cli/git"
+	"github.com/mit-pdos/perennial-cli/opam"
 )
 
 //go:embed init_template/*
@@ -21,6 +24,63 @@ type ProjectData struct {
 	Author      string
 	Synopsis    string
 	ProjectName string
+}
+
+func updatePerennialPin(opamFileName string) error {
+	contents, err := os.ReadFile(opamFileName)
+	if err != nil {
+		panic("could not read back opam file")
+	}
+	f, err := opam.Parse(bytes.NewReader(contents))
+	if err != nil {
+		panic(fmt.Errorf("template opam does not parse: %w", err))
+	}
+	perennialUrl := "https://github.com/mit-pdos/perennial"
+	commit, err := git.GetLatestCommit(perennialUrl)
+	if err != nil {
+		return fmt.Errorf("failed to get latest commit for perennial: %w", err)
+	}
+	f.AddPinDepend(opam.PinDepend{
+		Package: "perennial",
+		URL:     perennialUrl,
+		Commit:  commit,
+	})
+	_, err = f.UpdateIndirectDependencies()
+	if err != nil {
+		return fmt.Errorf("failed to update indirect dependencies: %w", err)
+	}
+	if err := os.WriteFile(opamFileName, []byte(f.String()), 0644); err != nil {
+		panic("could not write back opam file")
+	}
+	fmt.Printf("added perennial dependency\n")
+
+	return nil
+}
+
+func createGoMod(dir string, url string) error {
+	// Check if go.mod exists, if not run go mod init
+	goModPath := filepath.Join(dir, "go.mod")
+	if _, err := os.Stat(goModPath); os.IsNotExist(err) {
+		modName := strings.TrimPrefix(url, "https://")
+		// fmt.Printf("go mod init %s\n", modName)
+		goModCmd := exec.Command("go", "mod", "init", modName)
+		goModCmd.Dir = dir
+		goModCmd.Stdout = nil
+		goModCmd.Stderr = os.Stderr
+		if err := goModCmd.Run(); err != nil {
+			return fmt.Errorf("go mod init failed: %w", err)
+		}
+	}
+
+	// fmt.Println("go get -tool github.com/mit-pdos/perennial-cli@latest")
+	goGetCmd := exec.Command("go", "get", "-tool", "github.com/mit-pdos/perennial-cli@latest")
+	goGetCmd.Dir = dir
+	goGetCmd.Stdout = nil
+	goGetCmd.Stderr = os.Stderr
+	if err := goGetCmd.Run(); err != nil {
+		return fmt.Errorf("go get failed: %w", err)
+	}
+	return nil
 }
 
 // New creates a new perennial project in the specified directory
@@ -47,28 +107,8 @@ func New(url, projectName, dir string) error {
 		}
 	}
 
-	// Check if go.mod exists, if not run go mod init
-	goModPath := filepath.Join(dir, "go.mod")
-	if _, err := os.Stat(goModPath); os.IsNotExist(err) {
-		modName := strings.TrimPrefix(url, "https://")
-		fmt.Printf("go mod init %s\n", modName)
-		goModCmd := exec.Command("go", "mod", "init", modName)
-		goModCmd.Dir = dir
-		goModCmd.Stdout = os.Stdout
-		goModCmd.Stderr = os.Stderr
-		if err := goModCmd.Run(); err != nil {
-			return fmt.Errorf("go mod init failed: %w", err)
-		}
-	}
-
-	// Run go get -tool github.com/mit-pdos/perennial-cli@latest
-	fmt.Println("Running: go get -tool github.com/mit-pdos/perennial-cli@latest")
-	goGetCmd := exec.Command("go", "get", "-tool", "github.com/mit-pdos/perennial-cli@latest")
-	goGetCmd.Dir = dir
-	goGetCmd.Stdout = os.Stdout
-	goGetCmd.Stderr = os.Stderr
-	if err := goGetCmd.Run(); err != nil {
-		return fmt.Errorf("go get failed: %w", err)
+	if err := createGoMod(dir, url); err != nil {
+		return err
 	}
 
 	// Create src directory
@@ -86,13 +126,14 @@ func New(url, projectName, dir string) error {
 	}
 
 	// Read and process template files
+	opamFileName := projectName + ".opam"
 	templateFiles := []struct {
 		templatePath string
 		outputPath   string
 	}{
 		{
 			templatePath: "init_template/example.opam.tmpl",
-			outputPath:   projectName + ".opam",
+			outputPath:   opamFileName,
 		},
 		{
 			templatePath: "init_template/Makefile",
@@ -139,5 +180,10 @@ func New(url, projectName, dir string) error {
 		}
 		fmt.Printf("created %s\n", fileInfo.outputPath)
 	}
+
+	if err := updatePerennialPin(opamFileName); err != nil {
+		return err
+	}
+
 	return nil
 }

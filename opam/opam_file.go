@@ -274,6 +274,7 @@ func (f *OpamFile) AddPinDepend(dep PinDepend) {
 	if f.pinDepends.empty() {
 		return
 	}
+	dep.Normalize()
 
 	// Search for existing entry and replace it
 	foundIndex := -1
