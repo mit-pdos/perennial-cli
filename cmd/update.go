@@ -72,12 +72,17 @@ var updateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "Update pinned dependencies",
 	Long:  `Update dependencies in pin-depends to the latest commit hash.`,
+	Example: indent("  ", `
+perennial-cli opam update
+perennial-cli opam update -f perennial.opam
+perennial-cli opam update -p iris
+`),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		opamFile, _ := cmd.Flags().GetString("file")
 		if opamFile == "" {
 			opamFile, ok := findUniqueOpamFile()
 			if !ok {
-				return fmt.Errorf("no opam file provided and no unique file found")
+				return fmt.Errorf("no opam file provided (-f flag) and no unique file found")
 			}
 			// Set the flag value so Run can use it
 			cmd.Flags().Set("file", opamFile)

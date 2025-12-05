@@ -110,6 +110,11 @@ If the dependency already exists, it will be updated.
 
 `,
 	Args: cobra.ExactArgs(1),
+	Example: indent("  ", `
+perennial-cli opam add https://github.com/example/perennial-proof
+perennial-cli opam add -p specific-proof https://github.com/example/monorepo
+perennial-cli opam add https://github.com/example/perennial-proof#4bd989e3f7f2f99
+`),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		opamFile, _ := cmd.Flags().GetString("file")
 		if opamFile == "" {
