@@ -115,6 +115,10 @@ perennial-cli opam add https://github.com/example/perennial-proof
 perennial-cli opam add -p specific-proof https://github.com/example/monorepo
 perennial-cli opam add https://github.com/example/perennial-proof#4bd989e3f7f2f99
 `),
+	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		// No completions for URL argument, disable file completion
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	},
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		opamFile, _ := cmd.Flags().GetString("file")
 		if opamFile == "" {

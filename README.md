@@ -10,7 +10,7 @@ Run `perennial-cli help` for more detailed help.
 
 ### Create a new project
 
-Run `go run github.com/mit-pdos/perennial-cli@latest init <url>` to create a brand-new perennial project, with a Makefile and goose.toml setup. After setup, you can run the CLI with `go tool perennial-cli` using the newly-created `go.mod` file.
+Run `go run github.com/mit-pdos/perennial-cli@latest init <url>` to create a brand-new perennial project, with a Makefile and goose.toml setup. After setup, you can run the CLI with `go tool perennial-cli` using the newly-created `go.mod` file. Run `go get -u tool` to keep the version up-to-date.
 
 ### Manage opam files
 
@@ -42,6 +42,12 @@ All of these fields are optional; an empty file is enough to direct `perennial-c
 `perennial-cli uninstall` does the same as `make uninstall`.
 
 This command is intended to be called by the opam file, but it can be run manually (with the caveat that the installed files may not match what opam thinks is installed).
+
+### Shell completion
+
+You can install shell completions for `perennial-cli`. Follow the [cobra instructions](https://cobra.dev/docs/how-to-guides/shell-completion/) for your shell.
+
+For fish you just need `perennial-cli completion fish > ~/.config/fish/completions/perennial-cli.fish`.
 
 ## Developing
 

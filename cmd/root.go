@@ -29,6 +29,9 @@ go run github.com/mit-pdos/perennial-cli@latest init <proj_url>
 perennial-cli opam update
 perennial-cli goose
 `),
+	CompletionOptions: cobra.CompletionOptions{
+		HiddenDefaultCmd: true,
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
