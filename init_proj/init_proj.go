@@ -26,8 +26,8 @@ type ProjectData struct {
 	ProjectName string
 }
 
-func updatePerennialPin(opamFileName string) error {
-	contents, err := os.ReadFile(opamFileName)
+func updatePerennialPin(opamPath string) error {
+	contents, err := os.ReadFile(opamPath)
 	if err != nil {
 		panic("could not read back opam file")
 	}
@@ -49,7 +49,7 @@ func updatePerennialPin(opamFileName string) error {
 	if err != nil {
 		return fmt.Errorf("failed to update indirect dependencies: %w", err)
 	}
-	if err := os.WriteFile(opamFileName, []byte(f.String()), 0644); err != nil {
+	if err := os.WriteFile(opamPath, []byte(f.String()), 0644); err != nil {
 		panic("could not write back opam file")
 	}
 	fmt.Printf("added perennial dependency\n")
@@ -181,7 +181,7 @@ func New(url, projectName, dir string) error {
 		fmt.Printf("created %s\n", fileInfo.outputPath)
 	}
 
-	if err := updatePerennialPin(opamFileName); err != nil {
+	if err := updatePerennialPin(filepath.Join(dir, opamFileName)); err != nil {
 		return err
 	}
 
