@@ -19,6 +19,6 @@ The other packages implement the main functionalities of the CLI, exported as li
 - **opam** implements support for parsing and updating opam files (specifically depends and pin-depends)
 - **git** interacts with git remotes
 - **init_proj** creates a new Go project
-- **depgraph** implements graph algorithms for dependency graphs
-- **rocq_makefile** analyzes dependencies from `rocq dep` using depgraph
+- **depgraph** analyzes dependencies from `rocq dep`
+- **rocq_makefile** extracts info from `rocq makefile`
 - **goose_proj** parses `goose.toml` files
