@@ -456,3 +456,26 @@ func TestAddDependency_Multiple(t *testing.T) {
 	assert.Equal(t, "perennial", deps[3])
 	assert.Equal(t, "coq-record-update", deps[4])
 }
+
+func TestSetIndirect_EmptyWhenNoIndirects(t *testing.T) {
+	// Test with an opam file that has no indirect section
+	opamWithoutIndirect := `opam-version: "2.0"
+version: "dev"
+
+depends: [
+  "coq"
+]
+
+pin-depends: [
+  ["perennial.dev"           "git+https://github.com/mit-pdos/perennial#577140b059"]
+]
+`
+	f := parseString(t, opamWithoutIndirect)
+
+	// Call SetIndirect with an empty list
+	f.SetIndirect([]PinDepend{})
+
+	// Verify the file doesn't contain indirect marker
+	output := f.String()
+	assert.NotContains(t, output, "## begin indirect")
+}

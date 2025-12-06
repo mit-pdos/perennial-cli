@@ -379,20 +379,23 @@ func (f *OpamFile) SetIndirect(indirects []PinDepend) {
 
 		f.Lines = slices.Replace(f.Lines, start, end, indirectLines...)
 	} else {
-		// Add new indirect section before the closing ] of pin-depends
-		indirectLines := []string{
-			"",
-			"  ## begin indirect",
-		}
-		for _, dep := range filteredIndirects {
-			indirectLines = append(indirectLines, dep.String())
-		}
-		indirectLines = append(indirectLines, "  ## end")
+		// don't add an empty indirect section
+		if len(filteredIndirects) > 0 {
+			// Add new indirect section before the closing ] of pin-depends
+			indirectLines := []string{
+				"",
+				"  ## begin indirect",
+			}
+			for _, dep := range filteredIndirects {
+				indirectLines = append(indirectLines, dep.String())
+			}
+			indirectLines = append(indirectLines, "  ## end")
 
-		// Insert before the closing ] of pin-depends
-		insertPos := f.pinDepends.endLine - 1
+			// Insert before the closing ] of pin-depends
+			insertPos := f.pinDepends.endLine - 1
 
-		f.Lines = slices.Insert(f.Lines, insertPos, indirectLines...)
+			f.Lines = slices.Insert(f.Lines, insertPos, indirectLines...)
+		}
 	}
 	f.update()
 }
