@@ -1,3 +1,4 @@
+// gooseproj implements the goose.toml file format
 package gooseproj
 
 import (
@@ -9,8 +10,8 @@ import (
 	"github.com/pelletier/go-toml/v2"
 )
 
-// GooseConfig defines the format for the goose.toml file that defines a
-// translation config.
+// GooseConfig defines the format for the goose.toml file that defines
+// translation (the source and destination).
 type GooseConfig struct {
 	// Path to directory with go.mod
 	//

@@ -1,3 +1,7 @@
+// rocq_makefile gets info from `rocq makefile` for installation.
+//
+// This is needed to install Rocq outputs to the opam switch, which requires
+// converting logical paths to physical paths, and finding the opam switch.
 package rocq_makefile
 
 import (

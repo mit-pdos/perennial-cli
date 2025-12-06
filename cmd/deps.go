@@ -1,6 +1,3 @@
-/*
-Copyright © 2025 Tej Chajed <tchajed@gmail.com>
-*/
 package cmd
 
 import (

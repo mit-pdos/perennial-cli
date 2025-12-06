@@ -1,3 +1,4 @@
+// init_proj creates a new Perennial project
 package init_proj
 
 import (

@@ -1,3 +1,8 @@
+// opam parses, modifies, and updates dependencies in opam files
+//
+// Specialized to using pin-depends with git dependencies. These require
+// maintaining the indirect pin-depends (which opam ignores). This package also
+// implements updating these dependencies to the latest git commit.
 package opam
 
 import (

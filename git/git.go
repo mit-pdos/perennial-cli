@@ -1,3 +1,4 @@
+// git has functions for interacting with git remotes
 package git
 
 import (
