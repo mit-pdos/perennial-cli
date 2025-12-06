@@ -4,68 +4,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is `perennial-cli`, a Go CLI tool for managing opam files, specifically designed to handle pin-depends and their transitive indirect dependencies. The tool is used in the context of the Perennial verification framework.
+`perennial-cli` is a Go CLI tool for managing perennial projects. It has several orthogonal features: managing opam files, analyzing Makefile dependencies, creating a new perennial project, and installing compiled outputs.
 
 ## Test Commands
 
-```bash
-# Run tests with verbose output
-go test ./... -v
+Use `go test` to test any changes.
 
-# Run a specific test
-go test ./... -run TestParse
+## Packages
 
-# Run a specific test in a specific file
-go test -run TestParse ./opam/opam_file_test.go ./opam/opam_file.go
-```
+**cmd** has the CLI implementation, split into files for each subcommand. The CLI uses cobra.
 
-## Architecture
+The other packages implement the main functionalities of the CLI, exported as libraries so they can be tested individually:
 
-### Package Structure
-
-The codebase consists of two main packages:
-
-**`cmd` package** - Cobra-based CLI commands:
-- **update.go** - The `opam update` command that updates pin-depends to latest commits
-
-**`opam` package** - Core opam file manipulation library:
-- **opam_file.go** - Opam file parsing and manipulation
-- **update.go** - Git repository interaction and dependency resolution
-
-### Core Data Structures
-
-**`region` struct**: Represents a half-open interval `[startLine, endLine)` in the opam file. Used to track:
-- `depends`: The depends block
-- `pinDepends`: The pin-depends block (includes opening `[` and closing `]`)
-- `indirectPinDepends`: The indirect dependencies section (delimited by `## begin indirect` and `## end` markers)
-
-The `region` struct uses an **exclusive endLine** convention, making it compatible with Go's slice operations.
-
-**`OpamFile` struct**: Contains the parsed opam file as a slice of lines plus region metadata. All modifications to the file work by manipulating the `Lines` slice using Go's `slices` package functions (`Insert`, `Delete`, `Replace`).
-
-**`PinDepend` struct**: Represents a single pin-depends entry with:
-- `Package`: Package name (without `.dev` suffix when stored)
-- `URL`: Git URL (without `git+` prefix and without commit hash)
-- `Commit`: Commit hash (normalized to 15 characters)
-
-### Key Design Patterns
-
-1. **Line-based editing**: The opam file is kept as `[]string` (lines), and all edits use `slices.Insert`, `slices.Delete`, and `slices.Replace`. After modifications, `findRegions()` is called to update region boundaries.
-
-2. **Region tracking**: The parser identifies three regions (depends, pinDepends, indirectPinDepends) and updates them after any structural changes to the file.
-
-3. **Normalization**:
-   - Package names: Stored without `.dev` suffix, added on formatting
-   - Commit hashes: Normalized to first 15 characters
-   - Git URLs: Stored without `git+` prefix internally
-
-4. **Indirect dependencies**: The tool distinguishes between direct pin-depends and indirect (transitive) dependencies. Indirect deps are marked with `## begin indirect` / `## end` comments in the opam file.
-
-### Testing Notes
-
-Run the tests after making changes and make sure they pass.
-
-- Tests use `github.com/stretchr/testify` for assertions
-- `update_test.go` contains live tests that make actual network/git calls (marked with comments)
-- Line numbers in test assertions are 0-indexed and refer to the `exampleOpam` constant
-- The test example file uses a specific format with indirect dependencies for perennial and its transitive deps
+- **opam** implements support for parsing and updating opam files (specifically depends and pin-depends)
+- **git** interacts with git remotes
+- **init_proj** creates a new Go project
+- **depgraph** implements graph algorithms for dependency graphs
+- **rocq_makefile** analyzes dependencies from `rocq dep` using depgraph
+- **goose_proj** parses `goose.toml` files
