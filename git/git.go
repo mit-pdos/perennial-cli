@@ -14,6 +14,12 @@ import (
 //
 // Trims the commit hash to 10 characters.
 func GetLatestCommit(gitURL string) (string, error) {
+	if strings.HasPrefix(gitURL, "https://gitlab") {
+		// avoid a redirect warning
+		if !strings.HasSuffix(gitURL, ".git") {
+			gitURL = gitURL + ".git"
+		}
+	}
 	cmd := exec.Command("git", "ls-remote", gitURL, "HEAD")
 	cmd.Stderr = os.Stderr
 	output, err := cmd.Output()
