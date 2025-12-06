@@ -95,6 +95,10 @@ type DepChain struct {
 	path []string
 }
 
+func (c DepChain) Targets() []string {
+	return c.path[:len(c.path)-1]
+}
+
 func (c DepChain) Sources() []string {
 	return c.path[1:]
 }
@@ -157,4 +161,49 @@ func (g *Graph) Deps(targets []string) []DepChain {
 	}
 
 	return chains
+}
+
+// Targets returns all nodes that transitively depend on any of the sources.
+func (g *Graph) Targets(sources []string) []string {
+	// This is not simply Deps() on the reverse-dependency graph: that returns
+	// de-duplicated DepChains
+	// (potentially missing intermediate nodes in diamond patterns), while this BFS
+	// returns ALL reachable nodes in the reverse dependency graph.
+
+	// Build adjacency list for reverse dependencies
+	adjacency := orderedmap.New[string, []string]()
+	for _, dep := range g.deps {
+		// dep.Target depends on dep.Source
+		// So dep.Source is depended on by dep.Target
+		targets, _ := adjacency.Get(dep.Source)
+		adjacency.Set(dep.Source, append(targets, dep.Target))
+	}
+
+	// BFS to find all reachable nodes
+	seen := orderedmap.New[string, struct{}]()
+	visited := make(map[string]bool)
+	queue := slices.Clone(sources)
+	for _, src := range sources {
+		visited[src] = true
+	}
+
+	for len(queue) > 0 {
+		node := queue[0]
+		queue = queue[1:]
+
+		dependents, hasDeps := adjacency.Get(node)
+		if !hasDeps {
+			continue
+		}
+
+		for _, dependent := range dependents {
+			if !visited[dependent] {
+				visited[dependent] = true
+				queue = append(queue, dependent)
+				seen.Set(dependent, struct{}{})
+			}
+		}
+	}
+
+	return slices.Collect(seen.KeysFromOldest())
 }

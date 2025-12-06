@@ -85,7 +85,8 @@ Parse .rocqdeps.d and report dependencies.
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		rocqdepFileName, _ := cmd.Flags().GetString("file")
-		printVos, _ := cmd.Flags().GetBool("vo")
+		printVo, _ := cmd.Flags().GetBool("vo")
+		reverse, _ := cmd.Flags().GetBool("reverse")
 
 		// Gather .v files from arguments (handles directories)
 		sources, err := gatherVFiles(args)
@@ -98,14 +99,20 @@ Parse .rocqdeps.d and report dependencies.
 			return err
 		}
 
-		depSources := depgraph.RocqDeps(deps, sources)
+		var depSources []string
+		if reverse {
+			// reverse dependencies (targets)
+			depSources = depgraph.RocqTargets(deps, sources)
+		} else {
+			// normal dep behavior
+			depSources = depgraph.RocqDeps(deps, sources)
+		}
 		for _, source := range depSources {
-			if printVos {
+			if printVo {
 				fmt.Println(setExtension(source, ".vo"))
 			} else {
 				fmt.Println(source)
 			}
-
 		}
 		return nil
 	},
@@ -116,4 +123,5 @@ func init() {
 
 	depsCmd.PersistentFlags().StringP("file", "f", "", "Path to .rocqdeps.d file")
 	depsCmd.PersistentFlags().Bool("vo", false, "Print .vo dependencies rather than .v sources")
+	depsCmd.PersistentFlags().BoolP("reverse", "r", false, "Get reverse dependencies (files that depend on provided sources)")
 }

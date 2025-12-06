@@ -142,3 +142,105 @@ D.vo: D.v
 	// D should only appear once despite being reachable via both B and C
 	assert.ElementsMatch(t, []string{"A.v", "B.v", "C.v", "D.v"}, sources)
 }
+
+func TestRocqTargets(t *testing.T) {
+	// Create a test graph modeling Rocq compilation dependencies:
+	// - A.vo depends on A.v (source) and B.vo (compiled dependency)
+	// - B.vo depends on B.v (source) and C.vo (compiled dependency)
+	// - C.vo depends on C.v (source)
+	//
+	// If C.v is modified, we need to recompile B.v and A.v
+	testData := `A.vo: A.v B.vo
+B.vo: B.v C.vo
+C.vo: C.v
+`
+
+	g, err := Parse(strings.NewReader(testData))
+	require.NoError(t, err)
+	filterRocq(g)
+
+	// With .vo or .v file - find .v files that need recompilation if C changes
+	// Since C.vo is depended on by B.vo and A.vo (transitively),
+	// both B.v and A.v need to be recompiled
+	targets := RocqTargets(g, []string{"C.vo"})
+	assert.ElementsMatch(t, []string{"B.v", "A.v"}, targets)
+
+	// Test with .v file (should have same behavior)
+	targets = RocqTargets(g, []string{"C.v"})
+	assert.ElementsMatch(t, []string{"B.v", "A.v"}, targets)
+
+	// Test with intermediate node - if B changes, only A needs recompilation
+	targets = RocqTargets(g, []string{"B.vo"})
+	assert.ElementsMatch(t, []string{"A.v"}, targets)
+
+	// Test with root node - if A changes, nothing else needs recompilation
+	targets = RocqTargets(g, []string{"A.vo"})
+	assert.Empty(t, targets)
+}
+
+func TestRocqTargetsWithMixedExtensions(t *testing.T) {
+	testData := `A.vo: A.v B.vo
+B.vo: B.v
+C.vo: C.v B.vo
+`
+
+	g, err := Parse(strings.NewReader(testData))
+	require.NoError(t, err)
+	filterRocq(g)
+
+	// Test with mix of .v and .vo arguments - find all files that depend on B
+	targets := RocqTargets(g, []string{"B.v"})
+	assert.ElementsMatch(t, []string{"A.v", "C.v"}, targets)
+}
+
+func TestRocqTargetsNoDependents(t *testing.T) {
+	testData := `A.vo: A.v
+`
+
+	g, err := Parse(strings.NewReader(testData))
+	require.NoError(t, err)
+	filterRocq(g)
+
+	// Test with file that has no dependents
+	targets := RocqTargets(g, []string{"A.vo"})
+	assert.Empty(t, targets)
+}
+
+func TestRocqTargetsDiamond(t *testing.T) {
+	// Test diamond dependency pattern:
+	//     A
+	//    / \
+	//   B   C
+	//    \ /
+	//     D
+	testData := `A.vo: A.v B.vo C.vo
+B.vo: B.v D.vo
+C.vo: C.v D.vo
+D.vo: D.v
+`
+
+	g, err := Parse(strings.NewReader(testData))
+	require.NoError(t, err)
+	filterRocq(g)
+
+	targets := RocqTargets(g, []string{"D.vo"})
+	// A should only appear once despite D being reachable via both B and C
+	assert.ElementsMatch(t, []string{"A.v", "B.v", "C.v"}, targets)
+}
+
+func TestRocqTargetsMultipleInputs(t *testing.T) {
+	// Test with multiple input files
+	testData := `A.vo: A.v B.vo C.vo
+B.vo: B.v
+C.vo: C.v
+D.vo: D.v B.vo
+`
+
+	g, err := Parse(strings.NewReader(testData))
+	require.NoError(t, err)
+	filterRocq(g)
+
+	// Find all files that depend on either B or C
+	targets := RocqTargets(g, []string{"B.vo", "C.vo"})
+	assert.ElementsMatch(t, []string{"A.v", "D.v"}, targets)
+}
