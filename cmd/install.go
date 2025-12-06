@@ -12,6 +12,7 @@ import (
 
 	"github.com/mit-pdos/perennial-cli/depgraph"
 	"github.com/mit-pdos/perennial-cli/rocq_makefile"
+	orderedmap "github.com/pb33f/ordered-map/v2"
 	"github.com/spf13/cobra"
 )
 
@@ -142,14 +143,24 @@ func getInstallFiles(cmd *cobra.Command, args []string) ([]fileToInstall, map[st
 	}
 
 	if installDeps {
+		sourceList := orderedmap.New[string, struct{}]()
+		for _, source := range sources {
+			sourceList.Set(source, struct{}{})
+		}
+
 		// Parse dependency graph from .rocqdeps.d
 		deps, err := depgraph.ParseRocqdep(rocqdepName)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to parse deps %s: %w", rocqdepName, err)
 		}
 
-		// Get all dependencies of the sources
-		sources = depgraph.RocqDeps(deps, sources)
+		// Add all dependencies not already in sources
+		sourceDeps := depgraph.RocqDeps(deps, sources)
+		for _, f := range sourceDeps {
+			if _, present := sourceList.Get(f); !present {
+				sources = append(sources, f)
+			}
+		}
 	}
 
 	if len(sources) == 0 {
