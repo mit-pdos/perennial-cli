@@ -19,8 +19,8 @@ import (
 //go:embed init_template/*
 var initTemplateFS embed.FS
 
-// ProjectData holds the template data for project initialization
-type ProjectData struct {
+// projectData holds the template data for .tmpl files in init_template
+type projectData struct {
 	Url         string
 	Author      string
 	Synopsis    string
@@ -85,8 +85,12 @@ func createGoMod(dir string, url string) error {
 	return nil
 }
 
-// New creates a new perennial project in the specified directory
-func New(url, projectName, dir string) error {
+// New creates a new perennial project in the specified directory.
+//
+// projectName is used for the opam file name.
+//
+// The URL is used to create a go.mod and to populate metadata in the opam file.
+func New(url string, projectName string, dir string) error {
 	// Normalize URL
 	if !strings.HasPrefix(url, "https://") {
 		url = "https://" + url
@@ -120,7 +124,7 @@ func New(url, projectName, dir string) error {
 	}
 
 	// Prepare template data
-	data := ProjectData{
+	data := projectData{
 		Url:         url,
 		Author:      "AUTHOR",   // placeholder
 		Synopsis:    "SYNOPSIS", // placeholder
