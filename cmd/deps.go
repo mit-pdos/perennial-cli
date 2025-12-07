@@ -64,7 +64,13 @@ func gatherVFiles(paths []string) ([]string, error) {
 
 // depsCmd represents the deps command
 var depsCmd = &cobra.Command{
-	Use:   "deps",
+	Use: "deps",
+	Example: indent("  ", `
+		perennial-cli deps $(find src -name "*.v")
+		perennial-cli deps new/proof/proof_prelude.v
+		perennial-cli deps -r new/proof/proof_prelude.v
+		perennial-cli deps --exclude-source $(find new -name "*.v")
+`),
 	Short: "List and analyze .rocqdeps.d dependencies",
 	Long: `List and analyze .rocqdeps.d dependencies.
 
@@ -84,11 +90,16 @@ Parse .rocqdeps.d and report dependencies.
 		rocqdepFileName, _ := cmd.Flags().GetString("file")
 		printVo, _ := cmd.Flags().GetBool("vo")
 		reverse, _ := cmd.Flags().GetBool("reverse")
+		excludeSource, _ := cmd.Flags().GetBool("exclude-source")
 
 		// Gather .v files from arguments (handles directories)
 		sources, err := gatherVFiles(args)
 		if err != nil {
 			return err
+		}
+		sourceSet := make(map[string]bool)
+		for _, source := range sources {
+			sourceSet[source] = true
 		}
 
 		deps, err := depgraph.ParseRocqdep(rocqdepFileName)
@@ -105,6 +116,9 @@ Parse .rocqdeps.d and report dependencies.
 			depSources = depgraph.RocqDeps(deps, sources)
 		}
 		for _, source := range depSources {
+			if excludeSource && sourceSet[source] {
+				continue
+			}
 			if printVo {
 				fmt.Println(setExtension(source, ".vo"))
 			} else {
@@ -121,4 +135,5 @@ func init() {
 	depsCmd.PersistentFlags().StringP("file", "f", "", "Path to .rocqdeps.d file")
 	depsCmd.PersistentFlags().Bool("vo", false, "Print .vo dependencies rather than .v sources")
 	depsCmd.PersistentFlags().BoolP("reverse", "r", false, "Get reverse dependencies (files that depend on provided sources)")
+	depsCmd.PersistentFlags().Bool("exclude-source", false, "Exclude source files from output")
 }
