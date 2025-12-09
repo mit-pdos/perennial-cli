@@ -4,7 +4,7 @@ go 1.24.10
 
 require (
 	github.com/pb33f/ordered-map/v2 v2.3.0
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 )
 
