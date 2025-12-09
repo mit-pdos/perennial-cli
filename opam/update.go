@@ -101,25 +101,28 @@ func (dep *PinDepend) FetchDependencies() ([]PinDepend, error) {
 	return deps, nil
 }
 
+// ExtendCommitHashes extends any abbreviated commit hashes in direct
+// pin-depends to full hashes.
+func (f *OpamFile) ExtendCommitHashes() error {
+	directDeps := f.GetPinDepends()
+	for _, dep := range directDeps {
+		extended, err := dep.ExtendCommitHash()
+		if err != nil {
+			return err
+		}
+		if extended {
+			f.AddPinDepend(dep)
+		}
+	}
+	return nil
+}
+
 // UpdateIndirectDependencies updates the indirect dependencies of an opam file.
 // It also extends any abbreviated commit hashes to full hashes.
 //
 // It returns true if the indirect dependencies were updated, false otherwise.
 func (f *OpamFile) UpdateIndirectDependencies() (bool, error) {
 	changed := false
-
-	// First, extend all short hashes in direct dependencies
-	directDeps := f.GetPinDepends()
-	for i := range directDeps {
-		extended, err := directDeps[i].ExtendCommitHash()
-		if err != nil {
-			return false, err
-		}
-		if extended {
-			f.AddPinDepend(directDeps[i])
-			changed = true
-		}
-	}
 
 	seen := make(map[string]bool)
 	oldIndirects := f.GetIndirect()

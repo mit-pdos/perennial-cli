@@ -43,7 +43,11 @@ func doUpdate(cmd *cobra.Command, args []string) error {
 			})
 		}
 	}
-	_, err = opamFile.UpdateIndirectDependencies()
+	err = opamFile.ExtendCommitHashes()
+	if err != nil {
+		return err
+	}
+	indirectChanged, err := opamFile.UpdateIndirectDependencies()
 	if err != nil {
 		return err
 	}
@@ -61,7 +65,11 @@ func doUpdate(cmd *cobra.Command, args []string) error {
 			fmt.Printf("  %s: %s -> %s\n", update.Package, update.From, update.To)
 		}
 	} else {
-		fmt.Printf("updated indirect dependencies\n")
+		if indirectChanged {
+			fmt.Printf("updated indirect dependencies\n")
+		} else {
+			fmt.Printf("normalized file\n")
+		}
 	}
 	return nil
 }
