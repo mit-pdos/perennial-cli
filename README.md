@@ -4,6 +4,8 @@
 
 Tool to manage perennial-based verification projects.
 
+Install with `go install github.com/mit-pdos/perennial-cli@latest`.
+
 ## Features
 
 Run `perennial-cli help` for more detailed help.
