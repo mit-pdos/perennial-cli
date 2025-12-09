@@ -29,7 +29,7 @@ func TestFetchDependencies(t *testing.T) {
 	dep := PinDepend{
 		Package: "example-proof",
 		URL:     "git+https://github.com/tchajed/perennial-example-proof",
-		Commit:  AbbreviateHash(commit),
+		Commit:  commit,
 	}
 	deps, err := dep.FetchDependencies()
 	require.NoError(t, err)
@@ -45,9 +45,6 @@ func TestFetchDependencies(t *testing.T) {
 		assert.NotEmpty(t, dep.Package, "package name should not be empty")
 		assert.NotEmpty(t, dep.URL, "URL should not be empty")
 		assert.NotEmpty(t, dep.Commit, "commit should not be empty")
-
-		// Commit should be exactly HASH_ABBREV_LENGTH characters (normalized)
-		assert.Len(t, dep.Commit, HASH_ABBREV_LENGTH, "commit hash should be normalized")
 	}
 }
 

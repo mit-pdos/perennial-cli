@@ -32,7 +32,6 @@ func doUpdate(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
-		hash = opam.AbbreviateHash(hash)
 		if hash != dep.Commit {
 			oldCommit := dep.Commit
 			dep.Commit = hash

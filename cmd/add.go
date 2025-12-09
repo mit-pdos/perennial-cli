@@ -38,7 +38,6 @@ func doAdd(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return fmt.Errorf("failed to get latest commit: %w", err)
 		}
-		commit = opam.AbbreviateHash(commit)
 	}
 
 	// Determine package name

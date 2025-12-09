@@ -56,6 +56,26 @@ func FindOpamPackage(gitURL, commit string) (string, error) {
 	return opamFiles[0], nil
 }
 
+// ExtendCommitHash resolves an abbreviated commit hash to a full hash.
+// If the commit is already 40 characters (full hash), it returns without change.
+// Returns true if the hash was extended, false otherwise.
+func (dep *PinDepend) ExtendCommitHash() (bool, error) {
+	if dep.Commit == "" || len(dep.Commit) == 40 {
+		return false, nil
+	}
+
+	fullHash, err := git.ResolveCommit(dep.BaseUrl(), dep.Commit)
+	if err != nil {
+		return false, err
+	}
+
+	if fullHash != dep.Commit {
+		dep.Commit = fullHash
+		return true, nil
+	}
+	return false, nil
+}
+
 // FetchDependencies fetches the (transitive) dependencies of a package.
 // It fetches the package's opam file at the specified git commit and returns
 // its pin-depends.
@@ -82,9 +102,25 @@ func (dep *PinDepend) FetchDependencies() ([]PinDepend, error) {
 }
 
 // UpdateIndirectDependencies updates the indirect dependencies of an opam file.
+// It also extends any abbreviated commit hashes to full hashes.
 //
 // It returns true if the indirect dependencies were updated, false otherwise.
 func (f *OpamFile) UpdateIndirectDependencies() (bool, error) {
+	changed := false
+
+	// First, extend all short hashes in direct dependencies
+	directDeps := f.GetPinDepends()
+	for i := range directDeps {
+		extended, err := directDeps[i].ExtendCommitHash()
+		if err != nil {
+			return false, err
+		}
+		if extended {
+			f.AddPinDepend(directDeps[i])
+			changed = true
+		}
+	}
+
 	seen := make(map[string]bool)
 	oldIndirects := f.GetIndirect()
 	indirects := []PinDepend{}
@@ -109,5 +145,8 @@ func (f *OpamFile) UpdateIndirectDependencies() (bool, error) {
 		return 0
 	})
 	f.SetIndirect(indirects)
-	return !slices.Equal(oldIndirects, indirects), nil
+	if !slices.Equal(oldIndirects, indirects) {
+		changed = true
+	}
+	return changed, nil
 }

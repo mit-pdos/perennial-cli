@@ -12,8 +12,8 @@ func TestGetLatestCommit(t *testing.T) {
 	commit, err := GetLatestCommit("https://github.com/mit-pdos/perennial")
 	require.NoError(t, err)
 
-	// Commit should be 10 characters (our truncation)
-	assert.Len(t, commit, 10)
+	// Commit should be 40 characters (full hash)
+	assert.Len(t, commit, 40)
 
 	// Commit should be a valid hex string
 	for _, c := range commit {

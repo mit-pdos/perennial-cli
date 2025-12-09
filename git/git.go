@@ -13,7 +13,7 @@ import (
 
 // GetLatestCommit returns the latest commit hash from a git URL.
 //
-// Trims the commit hash to 10 characters.
+// Returns the full 40-character commit hash.
 func GetLatestCommit(gitURL string) (string, error) {
 	if strings.HasPrefix(gitURL, "https://gitlab") {
 		// avoid a redirect warning
@@ -34,12 +34,46 @@ func GetLatestCommit(gitURL string) (string, error) {
 		return "", fmt.Errorf("unexpected git ls-remote output: %s", output)
 	}
 
-	commit := parts[0]
-	if len(commit) > 10 {
-		commit = commit[:10]
+	return parts[0], nil
+}
+
+// ResolveCommit resolves an abbreviated commit hash to a full hash.
+// If the commit is already a full hash (40 characters), it returns it unchanged.
+// Uses git ls-remote to resolve the hash remotely.
+func ResolveCommit(gitURL, commit string) (string, error) {
+	// If already a full hash, return as-is
+	if len(commit) == 40 {
+		return commit, nil
 	}
 
-	return commit, nil
+	if strings.HasPrefix(gitURL, "https://gitlab") {
+		// avoid a redirect warning
+		if !strings.HasSuffix(gitURL, ".git") {
+			gitURL = gitURL + ".git"
+		}
+	}
+
+	// Use git ls-remote to get all refs, then find the matching commit
+	cmd := exec.Command("git", "ls-remote", gitURL)
+	cmd.Stderr = os.Stderr
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to run git ls-remote: %w", err)
+	}
+
+	// Look for a commit that starts with the abbreviated hash
+	lines := strings.Split(string(output), "\n")
+	for _, line := range lines {
+		parts := strings.Fields(line)
+		if len(parts) >= 1 {
+			fullHash := parts[0]
+			if strings.HasPrefix(fullHash, commit) {
+				return fullHash, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("commit %s not found in remote %s", commit, gitURL)
 }
 
 // ListFiles returns a list of files at the root of a git repository at a specific commit.

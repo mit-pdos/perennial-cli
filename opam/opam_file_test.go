@@ -24,12 +24,12 @@ depends: [
 ]
 
 pin-depends: [
-  ["perennial.dev"           "git+https://github.com/mit-pdos/perennial#577140b059"]
+  ["perennial.dev"           "git+https://github.com/mit-pdos/perennial#577140b0594fbdea1a2b3c4d5e6f7a8b9c0d1e2f"]
 
   ## begin indirect
-  ["rocq-stdpp.dev"          "git+https://gitlab.mpi-sws.org/iris/stdpp#187909f0c1"]
-  ["rocq-iris.dev"           "git+https://gitlab.mpi-sws.org/iris/iris#fde0f86992"]
-  ["iris-named-props.dev"    "git+https://github.com/tchajed/iris-named-props#c388714a93"]
+  ["rocq-stdpp.dev"          "git+https://gitlab.mpi-sws.org/iris/stdpp#187909f0c1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6"]
+  ["rocq-iris.dev"           "git+https://gitlab.mpi-sws.org/iris/iris#fde0f86992a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5"]
+  ["iris-named-props.dev"    "git+https://github.com/tchajed/iris-named-props#c388714a93b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5"]
   ## end
 ]
 
@@ -141,7 +141,7 @@ func TestListPinDepends(t *testing.T) {
 	// Check the direct dependency
 	assert.Equal(t, "perennial", deps[0].Package)
 	assert.Equal(t, "git+https://github.com/mit-pdos/perennial", deps[0].URL)
-	assert.Equal(t, "577140b059", deps[0].Commit)
+	assert.Equal(t, "577140b0594fbdea1a2b3c4d5e6f7a8b9c0d1e2f", deps[0].Commit)
 }
 
 func TestGetIndirect(t *testing.T) {
@@ -230,21 +230,21 @@ func TestParsePinDependLine(t *testing.T) {
 		want *PinDepend
 	}{
 		{
-			name: "standard line",
-			line: `  ["perennial.dev"           "git+https://github.com/mit-pdos/perennial#577140b0594fbdea"]`,
+			name: "standard line with full hash",
+			line: `  ["perennial.dev"           "git+https://github.com/mit-pdos/perennial#577140b0594fbdea1a2b3c4d5e6f7a8b9c0d1e2f"]`,
 			want: &PinDepend{
 				Package: "perennial",
 				URL:     "git+https://github.com/mit-pdos/perennial",
-				Commit:  "577140b059",
+				Commit:  "577140b0594fbdea1a2b3c4d5e6f7a8b9c0d1e2f",
 			},
 		},
 		{
-			name: "extra whitespace",
-			line: `    [  "pkg.dev"   "git+https://example.com/repo#abc123"  ]`,
+			name: "short hash",
+			line: `  ["pkg.dev"   "git+https://example.com/repo#abc123def"]`,
 			want: &PinDepend{
 				Package: "pkg",
 				URL:     "git+https://example.com/repo",
-				Commit:  "abc123",
+				Commit:  "abc123def",
 			},
 		},
 		{
@@ -353,13 +353,13 @@ func TestFormatPinDependLine(t *testing.T) {
 		want string
 	}{
 		{
-			name: "with commit",
+			name: "with full commit",
 			dep: PinDepend{
 				Package: "perennial",
 				URL:     "git+https://github.com/mit-pdos/perennial",
-				Commit:  "577140b0594fbdea",
+				Commit:  "577140b0594fbdea1a2b3c4d5e6f7a8b9c0d1e2f",
 			},
-			want: `  ["perennial.dev"             "git+https://github.com/mit-pdos/perennial#577140b059"]`,
+			want: `  ["perennial.dev"             "git+https://github.com/mit-pdos/perennial#577140b0594fbdea1a2b3c4d5e6f7a8b9c0d1e2f"]`,
 		},
 		{
 			name: "without commit",
@@ -375,9 +375,9 @@ func TestFormatPinDependLine(t *testing.T) {
 			dep: PinDepend{
 				Package: "very-long-package-name",
 				URL:     "git+https://example.com/repo",
-				Commit:  "abc",
+				Commit:  "abc123def456",
 			},
-			want: `  ["very-long-package-name.dev" "git+https://example.com/repo#abc"]`,
+			want: `  ["very-long-package-name.dev" "git+https://example.com/repo#abc123def456"]`,
 		},
 	}
 
@@ -467,7 +467,7 @@ depends: [
 ]
 
 pin-depends: [
-  ["perennial.dev"           "git+https://github.com/mit-pdos/perennial#577140b059"]
+  ["perennial.dev"           "git+https://github.com/mit-pdos/perennial#577140b0594fbdea1a2b3c4d5e6f7a8b9c0d1e2f"]
 ]
 `
 	f := parseString(t, opamWithoutIndirect)
