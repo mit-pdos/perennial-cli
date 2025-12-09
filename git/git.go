@@ -39,41 +39,81 @@ func GetLatestCommit(gitURL string) (string, error) {
 
 // ResolveCommit resolves an abbreviated commit hash to a full hash.
 // If the commit is already a full hash (40 characters), it returns it unchanged.
-// Uses git ls-remote to resolve the hash remotely.
+// Uses the GitHub/GitLab API to resolve the hash.
 func ResolveCommit(gitURL, commit string) (string, error) {
 	// If already a full hash, return as-is
 	if len(commit) == 40 {
 		return commit, nil
 	}
 
-	if strings.HasPrefix(gitURL, "https://gitlab") {
-		// avoid a redirect warning
-		if !strings.HasSuffix(gitURL, ".git") {
-			gitURL = gitURL + ".git"
-		}
-	}
+	url := strings.TrimPrefix(gitURL, "git+")
+	url = strings.TrimSuffix(url, ".git")
 
-	// Use git ls-remote to get all refs, then find the matching commit
-	cmd := exec.Command("git", "ls-remote", gitURL)
-	cmd.Stderr = os.Stderr
-	output, err := cmd.Output()
+	if strings.Contains(url, "github.com") {
+		return resolveCommitGitHub(url, commit)
+	} else if strings.Contains(url, "gitlab") {
+		return resolveCommitGitLab(url, commit)
+	}
+	return "", fmt.Errorf("unsupported git hosting service: %s", url)
+}
+
+func resolveCommitGitHub(url, commit string) (string, error) {
+	// GitHub API: https://api.github.com/repos/user/repo/commits/sha
+	url = strings.Replace(url, "https://github.com/", "", 1)
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/commits/%s", url, commit)
+
+	resp, err := http.Get(apiURL)
 	if err != nil {
-		return "", fmt.Errorf("failed to run git ls-remote: %w", err)
+		return "", fmt.Errorf("failed to fetch commit info: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to fetch commit info: status %d", resp.StatusCode)
 	}
 
-	// Look for a commit that starts with the abbreviated hash
-	lines := strings.Split(string(output), "\n")
-	for _, line := range lines {
-		parts := strings.Fields(line)
-		if len(parts) >= 1 {
-			fullHash := parts[0]
-			if strings.HasPrefix(fullHash, commit) {
-				return fullHash, nil
-			}
-		}
+	// Parse GitHub API response
+	var result struct {
+		SHA string `json:"sha"`
 	}
 
-	return "", fmt.Errorf("commit %s not found in remote %s", commit, gitURL)
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("failed to parse GitHub API response: %w", err)
+	}
+
+	return result.SHA, nil
+}
+
+func resolveCommitGitLab(url, commit string) (string, error) {
+	// GitLab API: https://gitlab.com/api/v4/projects/user%2Frepo/repository/commits/sha
+	parts := strings.SplitN(url, "/", 4)
+	if len(parts) < 4 {
+		return "", fmt.Errorf("invalid GitLab URL format: %s", url)
+	}
+	domain := parts[0] + "//" + parts[2]
+	projectPath := strings.ReplaceAll(parts[3], "/", "%2F")
+	apiURL := fmt.Sprintf("%s/api/v4/projects/%s/repository/commits/%s", domain, projectPath, commit)
+
+	resp, err := http.Get(apiURL)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch commit info: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to fetch commit info: status %d", resp.StatusCode)
+	}
+
+	// Parse GitLab API response
+	var result struct {
+		ID string `json:"id"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("failed to parse GitLab API response: %w", err)
+	}
+
+	return result.ID, nil
 }
 
 // ListFiles returns a list of files at the root of a git repository at a specific commit.
