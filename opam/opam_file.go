@@ -39,7 +39,7 @@ type PinDepend struct {
 // Returns dep.
 func (dep *PinDepend) Normalize() *PinDepend {
 	dep.Package = strings.TrimSuffix(dep.Package, ".dev")
-	if strings.HasPrefix("https://", dep.URL) {
+	if strings.HasPrefix(dep.URL, "https://") {
 		dep.URL = "git+" + dep.URL
 	}
 	return dep

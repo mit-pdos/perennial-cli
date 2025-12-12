@@ -177,13 +177,23 @@ func TestAddPinDepend_Update(t *testing.T) {
 	assert.True(t, found, "perennial not found after update")
 }
 
+func TestNormalize(t *testing.T) {
+	dep := PinDepend{
+		Package: "new-package",
+		URL:     "https://example.com/package",
+		Commit:  "abc123",
+	}
+	dep.Normalize()
+	assert.Equal(t, "git+https://example.com/package", dep.URL)
+}
+
 func TestAddPinDepend_Add(t *testing.T) {
 	f := parseString(t, exampleOpam)
 
 	// Add new dependency
 	f.AddPinDepend(PinDepend{
 		Package: "new-package",
-		URL:     "git+https://example.com/package",
+		URL:     "https://example.com/package",
 		Commit:  "abc123",
 	})
 
