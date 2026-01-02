@@ -58,16 +58,15 @@ var gooseCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("error parsing config: %w", err)
 		}
-		configDir := path.Dir(configPath)
 		var wg sync.WaitGroup
 		var gooseErr, proofgenErr error
 		wg.Add(2)
 		go func() {
-			gooseErr = runGooseCmd(localPath, "goose",
-				append([]string{
-					"-out", path.Join(config.RocqRoot, "code"),
-					"-dir", configDir,
-				}, config.PkgPatterns...))
+			args := append([]string{
+				"-out", path.Join(config.RocqRoot, "code"),
+				"-dir", config.GoPath,
+			}, config.PkgPatterns...)
+			gooseErr = runGooseCmd(localPath, "goose", args)
 			wg.Done()
 		}()
 		go func() {
@@ -76,7 +75,7 @@ var gooseCmd = &cobra.Command{
 					"-out", path.Join(config.RocqRoot, "generatedproof"),
 					// directory with .v.toml files
 					"-configdir", path.Join(config.RocqRoot, "code"),
-					"-dir", configDir,
+					"-dir", config.GoPath,
 				}, config.PkgPatterns...))
 			wg.Done()
 		}()
