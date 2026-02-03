@@ -1,5 +1,5 @@
 SRC_DIR := 'src'
-PROJ_VFILES := $(shell find $(SRC_DIR) -name "*.v")
+PROJ_VFILES = $(shell find $(SRC_DIR) -name "*.v")
 GOOSE_CONFIG_FILES := $(shell find $(SRC_DIR) -name "*.v.toml")
 GO_DIR := '.'
 GO_FILES := $(shell find $(GO_DIR) -name "*.go")
