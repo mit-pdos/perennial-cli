@@ -252,10 +252,7 @@ func listFilesGitLab(url, commit string) ([]string, error) {
 
 // CompareURL returns a URL to view the diff between two commits.
 // Supports GitHub and GitLab repositories.
-func CompareURL(gitURL, fromCommit, toCommit string) string {
-	url := strings.TrimPrefix(gitURL, "git+")
-	url = strings.TrimSuffix(url, ".git")
-
+func CompareURL(url, fromCommit, toCommit string) string {
 	if strings.Contains(url, "github.com") {
 		return fmt.Sprintf("%s/compare/%s...%s", url, fromCommit, toCommit)
 	} else if strings.Contains(url, "gitlab") {
