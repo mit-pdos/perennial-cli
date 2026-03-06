@@ -11,12 +11,14 @@ import (
 )
 
 type completedUpdate struct {
-	Package  string
-	From, To string
+	Package    string
+	From, To   string
+	CompareURL string
 }
 
 func doUpdate(cmd *cobra.Command, args []string) error {
 	packageFlag, _ := cmd.Flags().GetString("package")
+	printURL, _ := cmd.Flags().GetBool("print-url")
 	opamFileName, _ := cmd.Flags().GetString("file")
 	contents, err := os.ReadFile(opamFileName)
 	if err != nil {
@@ -37,9 +39,10 @@ func doUpdate(cmd *cobra.Command, args []string) error {
 			dep.Commit = hash
 			opamFile.AddPinDepend(dep)
 			updates = append(updates, completedUpdate{
-				Package: dep.Package,
-				From:    oldCommit,
-				To:      hash,
+				Package:    dep.Package,
+				From:       oldCommit,
+				To:         hash,
+				CompareURL: git.CompareURL(dep.BaseUrl(), oldCommit, hash),
 			})
 		}
 	}
@@ -63,6 +66,9 @@ func doUpdate(cmd *cobra.Command, args []string) error {
 		fmt.Printf("upgraded %d packages:\n", len(updates))
 		for _, update := range updates {
 			fmt.Printf("  %s: %s -> %s\n", update.Package, update.From, update.To)
+			if printURL && update.CompareURL != "" {
+				fmt.Printf("    %s\n", update.CompareURL)
+			}
 		}
 	} else {
 		if indirectChanged {
@@ -105,4 +111,5 @@ func init() {
 	// Here you will define your flags and configuration settings.
 
 	updateCmd.PersistentFlags().StringP("package", "p", "", "Update only a specific package")
+	updateCmd.PersistentFlags().Bool("print-url", false, "Print compare URL for each upgrade")
 }
