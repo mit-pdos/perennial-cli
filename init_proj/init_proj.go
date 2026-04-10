@@ -74,13 +74,19 @@ func createGoMod(dir string, url string) error {
 		}
 	}
 
-	// fmt.Println("go get -tool github.com/mit-pdos/perennial-cli@latest")
-	goGetCmd := exec.Command("go", "get", "-tool", "github.com/mit-pdos/perennial-cli@latest")
-	goGetCmd.Dir = dir
-	goGetCmd.Stdout = nil
-	goGetCmd.Stderr = os.Stderr
-	if err := goGetCmd.Run(); err != nil {
-		return fmt.Errorf("go get failed: %w", err)
+	tools := []string{
+		"github.com/mit-pdos/perennial-cli@latest",
+		"github.com/mit-pdos/perennial/goose/cmd/goose@latest",
+		"github.com/mit-pdos/perennial/goose/cmd/proofgen@latest",
+	}
+	for _, tool := range tools {
+		goGetCmd := exec.Command("go", "get", "-tool", tool)
+		goGetCmd.Dir = dir
+		goGetCmd.Stdout = nil
+		goGetCmd.Stderr = os.Stderr
+		if err := goGetCmd.Run(); err != nil {
+			return fmt.Errorf("go get -tool %s failed: %w", tool, err)
+		}
 	}
 	return nil
 }
