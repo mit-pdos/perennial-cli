@@ -24,6 +24,12 @@ func TestInitializeProject(t *testing.T) {
 	err = init_proj.New(url, projectName, tmpDir)
 	require.NoError(t, err)
 
+	// Verify _RocqProject content
+	rocqProjectPath := filepath.Join(tmpDir, "_RocqProject")
+	rocqProjectContent, err := os.ReadFile(rocqProjectPath)
+	require.NoError(t, err)
+	assert.Contains(t, string(rocqProjectContent), "-Q src New")
+
 	// Verify that all expected files were created
 	expectedFiles := []string{
 		"test-project.opam",
@@ -58,6 +64,10 @@ func TestInitializeProject(t *testing.T) {
 	assert.Contains(t, opamStr, "dev-repo: \"git+https://github.com/example/test-project.git\"")
 	assert.Contains(t, opamStr, "maintainer: \"AUTHOR\"")
 	assert.Contains(t, opamStr, "synopsis: \"SYNOPSIS\"")
+	assert.Contains(t, opamStr, "\"rocq-core\"")
+	assert.Contains(t, opamStr, "\"rocq-stdpp\"")
+	assert.Contains(t, opamStr, "\"rocq-iris\"")
+	assert.Contains(t, opamStr, "\"perennial\"")
 
 	// Verify go.mod was created with correct module name
 	goModPath := filepath.Join(tmpDir, "go.mod")
