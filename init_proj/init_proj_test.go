@@ -65,6 +65,7 @@ func TestInitializeProject(t *testing.T) {
 	assert.Contains(t, opamStr, "maintainer: \"AUTHOR\"")
 	assert.Contains(t, opamStr, "synopsis: \"SYNOPSIS\"")
 	assert.Contains(t, opamStr, "\"rocq-core\"")
+	assert.Contains(t, opamStr, "\"rocq-stdlib\"")
 	assert.Contains(t, opamStr, "\"rocq-stdpp\"")
 	assert.Contains(t, opamStr, "\"rocq-iris\"")
 	assert.Contains(t, opamStr, "\"perennial\"")
