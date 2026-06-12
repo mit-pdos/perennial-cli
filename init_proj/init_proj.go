@@ -77,8 +77,8 @@ func createGoMod(dir string, url string) error {
 	// fmt.Println("go get -tool github.com/mit-pdos/perennial-cli@latest")
 	goGetCmd := exec.Command("go", "get", "-tool",
 		"github.com/mit-pdos/perennial-cli@latest",
-		"github.com/goose-lang/goose/cmd/goose@latest",
-		"github.com/goose-lang/goose/cmd/proofgen@latest")
+		"github.com/mit-pdos/perennial/goose/cmd/goose@latest",
+		"github.com/mit-pdos/perennial/goose/cmd/proofgen@latest")
 	goGetCmd.Dir = dir
 	goGetCmd.Stdout = nil
 	goGetCmd.Stderr = os.Stderr
